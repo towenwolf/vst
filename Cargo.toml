@@ -1,0 +1,19 @@
+[package]
+name = "highpass_filter"
+version = "0.1.0"
+edition = "2021"
+authors = ["trwolf"]
+license = "GPL-3.0-or-later"
+
+[lib]
+crate-type = ["cdylib"]
+
+[workspace]
+members = ["xtask"]
+
+[dependencies]
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+
+[profile.release]
+lto = "thin"
+strip = "symbols"

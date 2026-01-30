@@ -1,8 +1,10 @@
 use nih_plug::prelude::*;
+use nih_plug_egui::EguiState;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
 mod analyzer;
+mod editor;
 mod profiles;
 mod ring_buffer;
 
@@ -87,15 +89,18 @@ pub enum Mode {
 
 /// Shared analysis output (thread-safe)
 #[derive(Default)]
-struct AnalysisOutput {
-    root: AtomicU32,
-    mode: AtomicU32,
-    confidence: AtomicU32,
+pub struct AnalysisOutput {
+    pub root: AtomicU32,
+    pub mode: AtomicU32,
+    pub confidence: AtomicU32,
 }
 
 /// Plugin parameters
 #[derive(Params)]
-struct KeyDetectorParams {
+pub struct KeyDetectorParams {
+    #[persist = "editor-state"]
+    pub editor_state: Arc<EguiState>,
+
     #[id = "fft_size"]
     fft_size: EnumParam<FftSize>,
 
@@ -109,6 +114,8 @@ struct KeyDetectorParams {
 impl Default for KeyDetectorParams {
     fn default() -> Self {
         Self {
+            editor_state: editor::default_state(),
+
             fft_size: EnumParam::new("FFT Size", FftSize::Size4096),
 
             smoothing: FloatParam::new(
@@ -223,6 +230,14 @@ impl Plugin for KeyDetectorPlugin {
 
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
+    }
+
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        editor::create(
+            self.params.clone(),
+            self.output.clone(),
+            self.params.editor_state.clone(),
+        )
     }
 
     fn initialize(

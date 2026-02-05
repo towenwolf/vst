@@ -3,6 +3,7 @@ members = [
     "xtask",
     "plugins/highpass_filter",
     "plugins/key_detector",
+    "plugins/genx_delay",
 ]
 resolver = "2"
 

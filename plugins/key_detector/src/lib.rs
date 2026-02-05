@@ -109,6 +109,16 @@ pub struct KeyDetectorParams {
 
     #[id = "threshold"]
     threshold: FloatParam,
+
+    // Output parameters (read-only, for host/M4L to read detected values)
+    #[id = "out_root"]
+    pub out_root: EnumParam<NoteName>,
+
+    #[id = "out_mode"]
+    pub out_mode: EnumParam<Mode>,
+
+    #[id = "out_confidence"]
+    pub out_confidence: FloatParam,
 }
 
 impl Default for KeyDetectorParams {
@@ -140,6 +150,27 @@ impl Default for KeyDetectorParams {
             )
             .with_unit(" %")
             .with_value_to_string(formatters::v2s_f32_rounded(0)),
+
+            // Output parameters - these are updated by the plugin to expose detected values
+            out_root: EnumParam::new("Detected Root", NoteName::C)
+                .hide()
+                .non_automatable(),
+
+            out_mode: EnumParam::new("Detected Mode", Mode::Major)
+                .hide()
+                .non_automatable(),
+
+            out_confidence: FloatParam::new(
+                "Detected Confidence",
+                0.0,
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 100.0,
+                },
+            )
+            .with_unit(" %")
+            .hide()
+            .non_automatable(),
         }
     }
 }

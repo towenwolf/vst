@@ -1,0 +1,13 @@
+[package]
+name = "genx_delay"
+version = "0.1.0"
+edition = "2021"
+authors = ["trwolf"]
+license = "GPL-3.0-or-later"
+description = "An emulation of delays popular in 00s alternative/rock music"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git" }

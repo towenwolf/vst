@@ -104,7 +104,10 @@ impl NoteDivision {
 
 /// Plugin parameters.
 #[derive(Params)]
-struct GenXDelayParams {
+pub struct GenXDelayParams {
+    #[persist = "editor-state"]
+    pub editor_state: Arc<EguiState>,
+
     // === Main Controls ===
     #[id = "delay_time"]
     pub delay_time: FloatParam,
@@ -161,6 +164,8 @@ struct GenXDelayParams {
 impl Default for GenXDelayParams {
     fn default() -> Self {
         Self {
+            editor_state: editor::default_state(),
+
             delay_time: FloatParam::new(
                 "Delay Time",
                 300.0,
@@ -282,7 +287,6 @@ impl Default for GenXDelayParams {
 /// The GenX Delay plugin.
 struct GenXDelay {
     params: Arc<GenXDelayParams>,
-    editor_state: Arc<EguiState>,
     sample_rate: f32,
 
     // Delay lines (stereo)
@@ -316,7 +320,6 @@ impl Default for GenXDelay {
     fn default() -> Self {
         Self {
             params: Arc::new(GenXDelayParams::default()),
-            editor_state: editor::default_state(),
             sample_rate: 44100.0,
             delay_left: DelayLine::default(),
             delay_right: DelayLine::default(),
@@ -368,7 +371,7 @@ impl Plugin for GenXDelay {
     }
 
     fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
-        editor::create(self.params.clone(), self.editor_state.clone())
+        editor::create(self.params.clone(), self.params.editor_state.clone())
     }
 
     fn initialize(

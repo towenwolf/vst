@@ -2,10 +2,12 @@
 //! Inspired by the warm, modulated delay sounds of artists like Incubus.
 
 use nih_plug::prelude::*;
+use nih_plug_egui::EguiState;
 use std::sync::Arc;
 
 mod delay_line;
 mod ducker;
+mod editor;
 mod filters;
 mod modulation;
 mod saturation;
@@ -280,6 +282,7 @@ impl Default for GenXDelayParams {
 /// The GenX Delay plugin.
 struct GenXDelay {
     params: Arc<GenXDelayParams>,
+    editor_state: Arc<EguiState>,
     sample_rate: f32,
 
     // Delay lines (stereo)
@@ -313,6 +316,7 @@ impl Default for GenXDelay {
     fn default() -> Self {
         Self {
             params: Arc::new(GenXDelayParams::default()),
+            editor_state: editor::default_state(),
             sample_rate: 44100.0,
             delay_left: DelayLine::default(),
             delay_right: DelayLine::default(),
@@ -361,6 +365,10 @@ impl Plugin for GenXDelay {
 
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
+    }
+
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        editor::create(self.params.clone(), self.editor_state.clone())
     }
 
     fn initialize(

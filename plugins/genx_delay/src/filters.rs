@@ -117,7 +117,8 @@ impl FeedbackFilter {
     /// `highpass_freq`: the low-frequency rolloff (e.g., 80-200 Hz)
     pub fn update(&mut self, sample_rate: f32, lowpass_freq: f32, highpass_freq: f32) {
         self.lowpass.set_lowpass(sample_rate, lowpass_freq, 0.707);
-        self.highpass.set_highpass(sample_rate, highpass_freq, 0.707);
+        self.highpass
+            .set_highpass(sample_rate, highpass_freq, 0.707);
     }
 
     /// Process a sample through both filters.

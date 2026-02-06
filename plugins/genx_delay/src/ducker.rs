@@ -43,14 +43,14 @@ impl Ducker {
     }
 
     /// Process a sample and return the ducking gain (0.0 = fully ducked, 1.0 = full volume).
-    /// 
+    ///
     /// `input`: the dry input signal (or its absolute value)
     /// `threshold`: signal level above which ducking starts (0.0 - 1.0)
     /// `amount`: how much to duck (0.0 = no ducking, 1.0 = full ducking)
     #[inline]
     pub fn process(&mut self, input: f32, threshold: f32, amount: f32) -> f32 {
         let input_level = input.abs();
-        
+
         // Envelope follower
         let coeff = if input_level > self.envelope {
             self.attack_coeff

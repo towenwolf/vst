@@ -55,7 +55,8 @@ impl DelayLine {
         let frac = delay_samples - delay_int as f32;
 
         // Calculate read positions (going backwards from write position)
-        let read_pos_0 = (self.write_pos + self.max_delay_samples - delay_int - 1) % self.max_delay_samples;
+        let read_pos_0 =
+            (self.write_pos + self.max_delay_samples - delay_int - 1) % self.max_delay_samples;
         let read_pos_1 = (read_pos_0 + self.max_delay_samples - 1) % self.max_delay_samples;
 
         // Linear interpolation between two samples
@@ -82,12 +83,12 @@ mod tests {
     fn test_delay_line_basic() {
         let mut dl = DelayLine::default();
         dl.initialize(44100.0, 1.0);
-        
+
         // Write some samples
         for i in 0..100 {
             dl.write(i as f32);
         }
-        
+
         // Read with 10 sample delay
         let output = dl.read(10.0);
         assert!((output - 89.0).abs() < 0.001);

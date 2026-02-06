@@ -16,6 +16,7 @@ const BG_MAIN: egui::Color32 = egui::Color32::from_rgb(235, 228, 215);
 const BG_PANEL: egui::Color32 = egui::Color32::from_rgb(215, 205, 190);
 const TEXT_DARK: egui::Color32 = egui::Color32::from_rgb(45, 40, 35);
 const TRIBAL_BROWN: egui::Color32 = egui::Color32::from_rgb(75, 55, 40);
+const ACCENT_WARM: egui::Color32 = egui::Color32::from_rgb(180, 95, 65);
 const ACCENT_OLIVE: egui::Color32 = egui::Color32::from_rgb(105, 115, 80);
 
 pub fn default_state() -> Arc<EguiState> {
@@ -57,19 +58,36 @@ fn apply_theme(ctx: &egui::Context) {
 
     // Font sizes
     let mut style = (*ctx.style()).clone();
-    style.text_styles.insert(
-        egui::TextStyle::Heading,
-        egui::FontId::proportional(24.0),
-    );
-    style.text_styles.insert(
-        egui::TextStyle::Body,
-        egui::FontId::proportional(11.0),
-    );
-    style.text_styles.insert(
-        egui::TextStyle::Small,
-        egui::FontId::proportional(9.0),
-    );
+    style
+        .text_styles
+        .insert(egui::TextStyle::Heading, egui::FontId::proportional(24.0));
+    style
+        .text_styles
+        .insert(egui::TextStyle::Body, egui::FontId::proportional(11.0));
+    style
+        .text_styles
+        .insert(egui::TextStyle::Small, egui::FontId::proportional(9.0));
     ctx.set_style(style);
+}
+
+fn handle_slider_param(
+    ui: &mut egui::Ui,
+    setter: &ParamSetter<'_>,
+    param: &FloatParam,
+    value: &mut f32,
+    label: &str,
+    range: std::ops::RangeInclusive<f32>,
+) {
+    let response = ui.add(egui::Slider::new(value, range).text(label));
+    if response.drag_started() {
+        setter.begin_set_parameter(param);
+    }
+    if response.changed() {
+        setter.set_parameter(param, *value);
+    }
+    if response.drag_stopped() {
+        setter.end_set_parameter(param);
+    }
 }
 
 pub fn create(
@@ -87,36 +105,59 @@ pub fn create(
             ResizableWindow::new("genx_delay")
                 .min_size([300.0, 200.0])
                 .show(egui_ctx, &state_for_resize, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.label(
-                        egui::RichText::new("GENX DELAY")
-                            .heading()
-                            .color(TEXT_DARK),
-                    );
-                    ui.label(
-                        egui::RichText::new("— WOODSTOCK 99 —")
-                            .small()
-                            .color(TRIBAL_BROWN),
-                    );
+                    ui.vertical_centered(|ui| {
+                        ui.label(egui::RichText::new("GENX DELAY").heading().color(TEXT_DARK));
+                        ui.label(
+                            egui::RichText::new("— WOODSTOCK 99 —")
+                                .small()
+                                .color(TRIBAL_BROWN),
+                        );
+                    });
+
+                    ui.add_space(12.0);
+
+                    ui.columns(2, |columns| {
+                        columns[0].group(|ui| {
+                            ui.label(egui::RichText::new("TIME").small().color(ACCENT_WARM));
+                            ui.add_space(6.0);
+
+                            let mut delay_time_value = params.delay_time.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.delay_time,
+                                &mut delay_time_value,
+                                "Delay Time (ms)",
+                                1.0..=2500.0,
+                            );
+                        });
+
+                        columns[1].group(|ui| {
+                            ui.label(egui::RichText::new("MAIN").small().color(ACCENT_OLIVE));
+                            ui.add_space(6.0);
+
+                            let mut feedback_value = params.feedback.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.feedback,
+                                &mut feedback_value,
+                                "Feedback",
+                                0.0..=0.95,
+                            );
+
+                            let mut mix_value = params.mix.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.mix,
+                                &mut mix_value,
+                                "Mix",
+                                0.0..=1.0,
+                            );
+                        });
+                    });
                 });
-
-                ui.add_space(12.0);
-
-                // Mix slider
-                let mut mix_value = params.mix.value();
-                let response = ui.add(
-                    egui::Slider::new(&mut mix_value, 0.0..=1.0).text("Mix"),
-                );
-                if response.drag_started() {
-                    setter.begin_set_parameter(&params.mix);
-                }
-                if response.changed() {
-                    setter.set_parameter(&params.mix, mix_value);
-                }
-                if response.drag_stopped() {
-                    setter.end_set_parameter(&params.mix);
-                }
-            });
         },
     )
 }

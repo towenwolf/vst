@@ -183,11 +183,18 @@ impl Default for GenXDelayParams {
 
             note_division: EnumParam::new("Note Division", NoteDivision::Quarter),
 
-            feedback: FloatParam::new("Feedback", 0.4, FloatRange::Linear { min: 0.0, max: 0.95 })
-                .with_unit(" %")
-                .with_value_to_string(formatters::v2s_f32_percentage(0))
-                .with_string_to_value(formatters::s2v_f32_percentage())
-                .with_smoother(SmoothingStyle::Linear(50.0)),
+            feedback: FloatParam::new(
+                "Feedback",
+                0.4,
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 0.95,
+                },
+            )
+            .with_unit(" %")
+            .with_value_to_string(formatters::v2s_f32_percentage(0))
+            .with_string_to_value(formatters::s2v_f32_percentage())
+            .with_smoother(SmoothingStyle::Linear(50.0)),
 
             mix: FloatParam::new("Mix", 0.3, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_unit(" %")
@@ -202,7 +209,10 @@ impl Default for GenXDelayParams {
             stereo_offset: FloatParam::new(
                 "Stereo Offset",
                 DEFAULT_LR_OFFSET_MS,
-                FloatRange::Linear { min: 0.0, max: 50.0 },
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 50.0,
+                },
             )
             .with_unit(" ms")
             .with_value_to_string(formatters::v2s_f32_rounded(1))
@@ -383,8 +393,10 @@ impl Plugin for GenXDelay {
         self.sample_rate = buffer_config.sample_rate;
 
         // Initialize delay lines
-        self.delay_left.initialize(self.sample_rate, MAX_DELAY_SECONDS);
-        self.delay_right.initialize(self.sample_rate, MAX_DELAY_SECONDS);
+        self.delay_left
+            .initialize(self.sample_rate, MAX_DELAY_SECONDS);
+        self.delay_right
+            .initialize(self.sample_rate, MAX_DELAY_SECONDS);
 
         // Initialize modulator
         self.modulator.initialize(self.sample_rate);
@@ -466,28 +478,35 @@ impl Plugin for GenXDelay {
             let base_delay_r = base_delay_samples + offset_samples;
 
             // Apply modulation in analog mode
-            let (delay_samples_l, delay_samples_r) = if mode == DelayMode::Analog && mod_depth > 0.001 {
-                let max_mod_samples = mod_depth * 20.0; // Up to 20 samples of modulation
-                self.modulator.get_modulated_delays(
-                    base_delay_l,
-                    base_delay_r,
-                    max_mod_samples,
-                    mod_rate,
-                )
-            } else {
-                (base_delay_l, base_delay_r)
-            };
+            let (delay_samples_l, delay_samples_r) =
+                if mode == DelayMode::Analog && mod_depth > 0.001 {
+                    let max_mod_samples = mod_depth * 20.0; // Up to 20 samples of modulation
+                    self.modulator.get_modulated_delays(
+                        base_delay_l,
+                        base_delay_r,
+                        max_mod_samples,
+                        mod_rate,
+                    )
+                } else {
+                    (base_delay_l, base_delay_r)
+                };
 
             // Smooth delay times to avoid clicks
             let smooth_delay_l = self.delay_smoother_left.process(delay_samples_l);
             let smooth_delay_r = self.delay_smoother_right.process(delay_samples_r);
 
             // Update filters
-            self.filter_left.update(self.sample_rate, lowpass_freq, highpass_freq);
-            self.filter_right.update(self.sample_rate, lowpass_freq, highpass_freq);
+            self.filter_left
+                .update(self.sample_rate, lowpass_freq, highpass_freq);
+            self.filter_right
+                .update(self.sample_rate, lowpass_freq, highpass_freq);
 
             // Update saturators
-            let effective_drive = if mode == DelayMode::Analog { drive } else { 0.0 };
+            let effective_drive = if mode == DelayMode::Analog {
+                drive
+            } else {
+                0.0
+            };
             self.saturator_left.set_drive(effective_drive);
             self.saturator_right.set_drive(effective_drive);
 
@@ -501,7 +520,8 @@ impl Plugin for GenXDelay {
 
             // Calculate ducking gain
             let duck_gain = if duck_amount > 0.001 {
-                self.ducker.process_stereo(input_left, input_right, duck_threshold, duck_amount)
+                self.ducker
+                    .process_stereo(input_left, input_right, duck_threshold, duck_amount)
             } else {
                 1.0
             };
@@ -619,7 +639,10 @@ mod gui_usability_tests {
         let (width, height) = params.editor_state.size();
         // Design spec: 600x420. Current placeholder: 300x200.
         // This test documents the expected size — update when the GUI is built out.
-        assert!(width > 0 && height > 0, "editor window must have positive dimensions");
+        assert!(
+            width > 0 && height > 0,
+            "editor window must have positive dimensions"
+        );
         assert!(
             width >= 200 && width <= 1200,
             "editor width {width} is outside reasonable DAW range (200–1200px)"
@@ -664,8 +687,14 @@ mod gui_usability_tests {
         let subcats = GenXDelay::VST3_SUBCATEGORIES;
         let has_fx = subcats.iter().any(|s| matches!(s, Vst3SubCategory::Fx));
         let has_delay = subcats.iter().any(|s| matches!(s, Vst3SubCategory::Delay));
-        assert!(has_fx, "VST3 subcategories must include Fx for Ableton to show it as an effect");
-        assert!(has_delay, "VST3 subcategories must include Delay for proper categorization");
+        assert!(
+            has_fx,
+            "VST3 subcategories must include Fx for Ableton to show it as an effect"
+        );
+        assert!(
+            has_delay,
+            "VST3 subcategories must include Delay for proper categorization"
+        );
     }
 
     #[test]
@@ -683,7 +712,10 @@ mod gui_usability_tests {
             l.main_input_channels == NonZeroU32::new(2)
                 && l.main_output_channels == NonZeroU32::new(2)
         });
-        assert!(has_stereo, "Must support stereo I/O for Ableton stereo tracks");
+        assert!(
+            has_stereo,
+            "Must support stereo I/O for Ableton stereo tracks"
+        );
     }
 
     #[test]
@@ -753,7 +785,10 @@ mod gui_usability_tests {
     fn ping_pong_default_is_off() {
         let p = test_params();
         let v = p.ping_pong.default_plain_value();
-        assert!(!v, "Ping pong should default to off — basic stereo delay is the starting point");
+        assert!(
+            !v,
+            "Ping pong should default to off — basic stereo delay is the starting point"
+        );
     }
 
     #[test]
@@ -817,9 +852,15 @@ mod gui_usability_tests {
         let hp_max = p.highpass_freq.preview_plain(1.0);
 
         // LP must go up to at least near-full bandwidth
-        assert!(lp_max >= 18000.0, "Low-pass max {lp_max} Hz should reach near-Nyquist");
+        assert!(
+            lp_max >= 18000.0,
+            "Low-pass max {lp_max} Hz should reach near-Nyquist"
+        );
         // HP must go down to sub-bass
-        assert!(hp_min <= 30.0, "High-pass min {hp_min} Hz should allow sub-bass through");
+        assert!(
+            hp_min <= 30.0,
+            "High-pass min {hp_min} Hz should allow sub-bass through"
+        );
         // HP max should be below LP min to prevent impossible crossover
         assert!(
             hp_max < lp_min || lp_min <= hp_max,
@@ -922,7 +963,10 @@ mod gui_usability_tests {
             p.duck_threshold.name(),
         ];
         for name in &names {
-            assert!(!name.is_empty(), "Parameter name must not be empty — Ableton shows these in its UI");
+            assert!(
+                !name.is_empty(),
+                "Parameter name must not be empty — Ableton shows these in its UI"
+            );
         }
     }
 
@@ -990,6 +1034,52 @@ mod gui_usability_tests {
             let mult = div.as_beat_multiplier();
             assert!(mult > 0.0, "{:?} must have a positive beat multiplier", div);
         }
+    }
+
+    #[test]
+    fn note_division_options_are_gui_selector_safe() {
+        // QA gate for the next GUI increment (Tempo Sync + Note Division selector):
+        // each option must map to a stable, unique label and a musically valid beat multiplier.
+        let options = [
+            (NoteDivision::Whole, "1/1"),
+            (NoteDivision::Half, "1/2"),
+            (NoteDivision::HalfDotted, "1/2d"),
+            (NoteDivision::HalfTriplet, "1/2t"),
+            (NoteDivision::Quarter, "1/4"),
+            (NoteDivision::QuarterDotted, "1/4d"),
+            (NoteDivision::QuarterTriplet, "1/4t"),
+            (NoteDivision::Eighth, "1/8"),
+            (NoteDivision::EighthDotted, "1/8d"),
+            (NoteDivision::EighthTriplet, "1/8t"),
+            (NoteDivision::Sixteenth, "1/16"),
+            (NoteDivision::SixteenthDotted, "1/16d"),
+            (NoteDivision::SixteenthTriplet, "1/16t"),
+        ];
+
+        let mut seen = HashSet::new();
+        for (division, label) in options {
+            assert!(
+                seen.insert(label),
+                "Duplicate note division label '{label}' would break GUI selector clarity"
+            );
+            assert!(
+                division.as_beat_multiplier() > 0.0,
+                "Note division '{label}' must map to a positive beat multiplier"
+            );
+        }
+
+        // Coarse musical ordering used by the selector UX.
+        assert!(NoteDivision::Whole.as_beat_multiplier() > NoteDivision::Half.as_beat_multiplier());
+        assert!(
+            NoteDivision::Half.as_beat_multiplier() > NoteDivision::Quarter.as_beat_multiplier()
+        );
+        assert!(
+            NoteDivision::Quarter.as_beat_multiplier() > NoteDivision::Eighth.as_beat_multiplier()
+        );
+        assert!(
+            NoteDivision::Eighth.as_beat_multiplier()
+                > NoteDivision::Sixteenth.as_beat_multiplier()
+        );
     }
 
     #[test]

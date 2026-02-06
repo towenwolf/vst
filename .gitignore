@@ -17,3 +17,6 @@ Cargo.lock
 *.vst3
 *.clap
 *.component
+
+# 
+.claude/

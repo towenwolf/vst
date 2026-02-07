@@ -679,11 +679,11 @@ mod gui_usability_tests {
             "editor window must have positive dimensions"
         );
         assert!(
-            width >= 200 && width <= 1200,
+            (200..=1200).contains(&width),
             "editor width {width} is outside reasonable DAW range (200–1200px)"
         );
         assert!(
-            height >= 150 && height <= 900,
+            (150..=900).contains(&height),
             "editor height {height} is outside reasonable DAW range (150–900px)"
         );
     }
@@ -755,8 +755,9 @@ mod gui_usability_tests {
 
     #[test]
     fn sample_accurate_automation_enabled() {
+        let sample_accurate = std::hint::black_box(GenXDelay::SAMPLE_ACCURATE_AUTOMATION);
         assert!(
-            GenXDelay::SAMPLE_ACCURATE_AUTOMATION,
+            sample_accurate,
             "Sample-accurate automation should be enabled for tight Ableton automation"
         );
     }
@@ -1268,27 +1269,69 @@ mod gui_usability_tests {
     }
 
     #[test]
-    fn gdx_05_note_division_selector_has_expected_cardinality() {
-        // 13 options expected by the GUI selector contract.
-        let options = [
-            NoteDivision::Whole,
-            NoteDivision::Half,
-            NoteDivision::HalfDotted,
-            NoteDivision::HalfTriplet,
-            NoteDivision::Quarter,
-            NoteDivision::QuarterDotted,
-            NoteDivision::QuarterTriplet,
-            NoteDivision::Eighth,
-            NoteDivision::EighthDotted,
-            NoteDivision::EighthTriplet,
-            NoteDivision::Sixteenth,
-            NoteDivision::SixteenthDotted,
-            NoteDivision::SixteenthTriplet,
-        ];
+    fn gdx_05_note_division_selector_options_are_unique_and_ordered() {
+        let options = editor::GUI_NOTE_DIVISION_OPTIONS;
         assert_eq!(
             options.len(),
             13,
             "GUI note-division selector must expose all planned musical subdivisions"
+        );
+
+        let mut seen_labels = HashSet::new();
+        let mut seen_divisions = HashSet::new();
+        for (division, label) in options {
+            assert!(
+                seen_labels.insert(*label),
+                "Duplicate selector label '{label}' would break GUI clarity"
+            );
+            assert!(
+                seen_divisions.insert(division.to_index()),
+                "Duplicate selector division '{division:?}' would break GUI mapping"
+            );
+        }
+
+        // The selector's expected coarse order in UI.
+        assert_eq!(options[0].0, NoteDivision::Whole);
+        assert_eq!(options[1].0, NoteDivision::Half);
+        assert_eq!(options[4].0, NoteDivision::Quarter);
+        assert_eq!(options[7].0, NoteDivision::Eighth);
+        assert_eq!(options[10].0, NoteDivision::Sixteenth);
+    }
+
+    #[test]
+    fn gdx_05_mode_gating_logic_contract() {
+        assert!(
+            !editor::modulation_controls_enabled(DelayMode::Digital),
+            "Modulation controls must be disabled in Digital mode"
+        );
+        assert!(
+            editor::modulation_controls_enabled(DelayMode::Analog),
+            "Modulation controls must be enabled in Analog mode"
+        );
+    }
+
+    #[test]
+    fn gdx_05_default_ui_state_parity_with_params() {
+        let p = test_params();
+        let default_mode = p.mode.default_plain_value();
+        let default_tempo_sync = p.tempo_sync.default_plain_value();
+
+        assert_eq!(
+            default_mode,
+            DelayMode::Digital,
+            "UI default mode should match parameter default"
+        );
+        assert!(
+            !default_tempo_sync,
+            "UI tempo-sync toggle should default off to match parameter default"
+        );
+        assert!(
+            !editor::modulation_controls_enabled(default_mode),
+            "Modulation UI should start disabled when mode defaults to Digital"
+        );
+        assert!(
+            !editor::note_division_selector_enabled(default_tempo_sync),
+            "Note-division selector should start disabled when tempo sync is off"
         );
     }
 

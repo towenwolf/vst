@@ -6,7 +6,7 @@ use nih_plug_egui::resizable_window::ResizableWindow;
 use nih_plug_egui::{create_egui_editor, EguiState};
 use std::sync::Arc;
 
-use crate::GenXDelayParams;
+use crate::{DelayMode, GenXDelayParams, NoteDivision};
 
 const WINDOW_WIDTH: u32 = 600;
 const WINDOW_HEIGHT: u32 = 420;
@@ -120,9 +120,86 @@ fn handle_slider_param(
     }
 }
 
+/// Horizontal button group for small enums (e.g. Mode: Digital | Analog).
+fn handle_enum_buttons<T: Enum + PartialEq + Copy + 'static>(
+    ui: &mut egui::Ui,
+    setter: &ParamSetter<'_>,
+    param: &EnumParam<T>,
+    label: &str,
+) {
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new(label).small().color(TEXT_DARK));
+        let current = param.value();
+        for (idx, name) in T::variants().iter().enumerate() {
+            let variant = T::from_index(idx);
+            if ui.selectable_label(current == variant, *name).clicked() {
+                setter.begin_set_parameter(param);
+                setter.set_parameter(param, variant);
+                setter.end_set_parameter(param);
+            }
+        }
+    });
+}
+
+/// Dropdown combo box for large enums (e.g. Note Division with 13 options).
+fn handle_enum_combobox<T: Enum + PartialEq + Copy + 'static>(
+    ui: &mut egui::Ui,
+    setter: &ParamSetter<'_>,
+    param: &EnumParam<T>,
+    label: &str,
+    id_salt: &str,
+) {
+    let current = param.value();
+    let current_name = T::variants()[current.to_index()];
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new(label).small().color(TEXT_DARK));
+        egui::ComboBox::from_id_salt(id_salt)
+            .selected_text(current_name)
+            .show_ui(ui, |ui| {
+                for (idx, name) in T::variants().iter().enumerate() {
+                    let variant = T::from_index(idx);
+                    if ui.selectable_label(current == variant, *name).clicked() {
+                        setter.begin_set_parameter(param);
+                        setter.set_parameter(param, variant);
+                        setter.end_set_parameter(param);
+                    }
+                }
+            });
+    });
+}
+
 fn section_label(ui: &mut egui::Ui, text: &str, color: egui::Color32, scale: f32) {
     ui.label(egui::RichText::new(text).small().strong().color(color));
     ui.add_space(4.0 * scale);
+}
+
+#[cfg(test)]
+pub(crate) const GUI_NOTE_DIVISION_OPTIONS: &[(NoteDivision, &str)] = &[
+    (NoteDivision::Whole, "1/1"),
+    (NoteDivision::Half, "1/2"),
+    (NoteDivision::HalfDotted, "1/2d"),
+    (NoteDivision::HalfTriplet, "1/2t"),
+    (NoteDivision::Quarter, "1/4"),
+    (NoteDivision::QuarterDotted, "1/4d"),
+    (NoteDivision::QuarterTriplet, "1/4t"),
+    (NoteDivision::Eighth, "1/8"),
+    (NoteDivision::EighthDotted, "1/8d"),
+    (NoteDivision::EighthTriplet, "1/8t"),
+    (NoteDivision::Sixteenth, "1/16"),
+    (NoteDivision::SixteenthDotted, "1/16d"),
+    (NoteDivision::SixteenthTriplet, "1/16t"),
+];
+
+#[cfg(test)]
+#[inline]
+pub(crate) fn modulation_controls_enabled(mode: DelayMode) -> bool {
+    mode == DelayMode::Analog
+}
+
+#[cfg(test)]
+#[inline]
+pub(crate) fn note_division_selector_enabled(tempo_sync: bool) -> bool {
+    tempo_sync
 }
 
 /// Compute a uniform scale factor from the current window size relative to base.
@@ -187,12 +264,23 @@ pub fn create(
                                 "Reverse",
                             );
 
-                            // Tempo Sync + Note Division — controls wired in GDX-02
                             ui.add_space(4.0 * scale);
-                            ui.label(
-                                egui::RichText::new("Sync / Div")
-                                    .small()
-                                    .color(TEXT_DARK),
+                            let mut sync_value = params.tempo_sync.value();
+                            handle_bool_param(
+                                ui,
+                                setter,
+                                &params.tempo_sync,
+                                &mut sync_value,
+                                "Tempo Sync",
+                            );
+
+                            ui.add_space(4.0 * scale);
+                            handle_enum_combobox::<NoteDivision>(
+                                ui,
+                                setter,
+                                &params.note_division,
+                                "Div",
+                                "note_div",
                             );
                         });
 
@@ -220,12 +308,12 @@ pub fn create(
                                 0.0..=1.0,
                             );
 
-                            // Mode selector — wired in GDX-02
                             ui.add_space(4.0 * scale);
-                            ui.label(
-                                egui::RichText::new("Mode")
-                                    .small()
-                                    .color(TEXT_DARK),
+                            handle_enum_buttons::<DelayMode>(
+                                ui,
+                                setter,
+                                &params.mode,
+                                "Mode",
                             );
                         });
 
@@ -233,17 +321,24 @@ pub fn create(
                         cols[2].group(|ui| {
                             section_label(ui, "STEREO", ACCENT_NAVY, scale);
 
-                            // Ping Pong + Stereo Offset — controls wired in GDX-02
-                            ui.label(
-                                egui::RichText::new("Ping Pong")
-                                    .small()
-                                    .color(TEXT_DARK),
+                            let mut ping_pong_value = params.ping_pong.value();
+                            handle_bool_param(
+                                ui,
+                                setter,
+                                &params.ping_pong,
+                                &mut ping_pong_value,
+                                "Ping Pong",
                             );
+
                             ui.add_space(4.0 * scale);
-                            ui.label(
-                                egui::RichText::new("Offset")
-                                    .small()
-                                    .color(TEXT_DARK),
+                            let mut offset_value = params.stereo_offset.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.stereo_offset,
+                                &mut offset_value,
+                                "Offset (ms)",
+                                0.0..=50.0,
                             );
                         });
                     });
@@ -256,17 +351,25 @@ pub fn create(
                         cols[0].group(|ui| {
                             section_label(ui, "TONE", TRIBAL_BROWN, scale);
 
-                            // HP / LP — controls wired in GDX-02
-                            ui.label(
-                                egui::RichText::new("High-Pass")
-                                    .small()
-                                    .color(TEXT_DARK),
+                            let mut hp_value = params.highpass_freq.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.highpass_freq,
+                                &mut hp_value,
+                                "HP (Hz)",
+                                20.0..=1000.0,
                             );
+
                             ui.add_space(4.0 * scale);
-                            ui.label(
-                                egui::RichText::new("Low-Pass")
-                                    .small()
-                                    .color(TEXT_DARK),
+                            let mut lp_value = params.lowpass_freq.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.lowpass_freq,
+                                &mut lp_value,
+                                "LP (Hz)",
+                                500.0..=20000.0,
                             );
                         });
 
@@ -279,12 +382,37 @@ pub fn create(
                                     .color(RUST),
                             );
 
-                            // Rate / Depth / Drive — controls wired in GDX-02
                             ui.add_space(4.0 * scale);
-                            ui.label(
-                                egui::RichText::new("Rate / Depth / Drive")
-                                    .small()
-                                    .color(TEXT_DARK),
+                            let mut rate_value = params.mod_rate.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.mod_rate,
+                                &mut rate_value,
+                                "Rate (Hz)",
+                                0.1..=5.0,
+                            );
+
+                            ui.add_space(4.0 * scale);
+                            let mut depth_value = params.mod_depth.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.mod_depth,
+                                &mut depth_value,
+                                "Depth",
+                                0.0..=1.0,
+                            );
+
+                            ui.add_space(4.0 * scale);
+                            let mut drive_value = params.drive.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.drive,
+                                &mut drive_value,
+                                "Drive",
+                                0.0..=1.0,
                             );
                         });
 
@@ -292,17 +420,25 @@ pub fn create(
                         cols[2].group(|ui| {
                             section_label(ui, "DUCK", DOVE_GOLD, scale);
 
-                            // Amount / Threshold — controls wired in GDX-02
-                            ui.label(
-                                egui::RichText::new("Amount")
-                                    .small()
-                                    .color(TEXT_DARK),
+                            let mut duck_amt_value = params.duck_amount.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.duck_amount,
+                                &mut duck_amt_value,
+                                "Amount",
+                                0.0..=1.0,
                             );
+
                             ui.add_space(4.0 * scale);
-                            ui.label(
-                                egui::RichText::new("Threshold")
-                                    .small()
-                                    .color(TEXT_DARK),
+                            let mut duck_thr_value = params.duck_threshold.value();
+                            handle_slider_param(
+                                ui,
+                                setter,
+                                &params.duck_threshold,
+                                &mut duck_thr_value,
+                                "Threshold",
+                                0.0..=1.0,
                             );
                         });
                     });

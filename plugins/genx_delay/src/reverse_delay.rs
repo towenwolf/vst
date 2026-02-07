@@ -27,23 +27,12 @@ impl Default for Grain {
 }
 
 /// Reverse delay line with two overlapping grains for click-free crossfade.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ReverseDelayLine {
     buffer: Vec<f32>,
     write_pos: usize,
     max_samples: usize,
     grains: [Grain; 2],
-}
-
-impl Default for ReverseDelayLine {
-    fn default() -> Self {
-        Self {
-            buffer: Vec::new(),
-            write_pos: 0,
-            max_samples: 0,
-            grains: [Grain::default(), Grain::default()],
-        }
-    }
 }
 
 impl ReverseDelayLine {

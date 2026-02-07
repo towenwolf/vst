@@ -1,21 +1,11 @@
 //! Delay line implementation with interpolation for smooth delay time changes.
 
 /// A delay line with linear interpolation for sub-sample accuracy.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct DelayLine {
     buffer: Vec<f32>,
     write_pos: usize,
     max_delay_samples: usize,
-}
-
-impl Default for DelayLine {
-    fn default() -> Self {
-        Self {
-            buffer: Vec::new(),
-            write_pos: 0,
-            max_delay_samples: 0,
-        }
-    }
 }
 
 impl DelayLine {
@@ -64,14 +54,6 @@ impl DelayLine {
         let sample_1 = self.buffer[read_pos_1];
 
         sample_0 + frac * (sample_1 - sample_0)
-    }
-
-    /// Read and write in one operation (tap-then-write).
-    #[inline]
-    pub fn process(&mut self, input: f32, delay_samples: f32) -> f32 {
-        let output = self.read(delay_samples);
-        self.write(input);
-        output
     }
 }
 

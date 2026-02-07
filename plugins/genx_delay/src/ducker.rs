@@ -62,8 +62,7 @@ impl Ducker {
         // Calculate ducking gain
         if self.envelope > threshold {
             let excess = (self.envelope - threshold) / (1.0 - threshold + 0.001);
-            let duck_factor = 1.0 - (excess * amount).clamp(0.0, 1.0);
-            duck_factor
+            1.0 - (excess * amount).clamp(0.0, 1.0)
         } else {
             1.0
         }
@@ -73,27 +72,6 @@ impl Ducker {
     #[inline]
     pub fn process_stereo(&mut self, left: f32, right: f32, threshold: f32, amount: f32) -> f32 {
         let input_level = (left.abs() + right.abs()) * 0.5;
-        self.process_level(input_level, threshold, amount)
-    }
-
-    /// Process with a pre-computed level.
-    #[inline]
-    fn process_level(&mut self, input_level: f32, threshold: f32, amount: f32) -> f32 {
-        // Envelope follower
-        let coeff = if input_level > self.envelope {
-            self.attack_coeff
-        } else {
-            self.release_coeff
-        };
-        self.envelope = coeff * self.envelope + (1.0 - coeff) * input_level;
-
-        // Calculate ducking gain
-        if self.envelope > threshold {
-            let excess = (self.envelope - threshold) / (1.0 - threshold + 0.001);
-            let duck_factor = 1.0 - (excess * amount).clamp(0.0, 1.0);
-            duck_factor
-        } else {
-            1.0
-        }
+        self.process(input_level, threshold, amount)
     }
 }

@@ -1192,4 +1192,139 @@ mod gui_usability_tests {
         plugin.reset();
         plugin.reset(); // double-reset should be safe
     }
+
+    // =========================================================================
+    // MVP Kanban Test Gates (docs/GENX_DELAY_MVP_KANBAN.md)
+    // =========================================================================
+
+    #[test]
+    fn gdx_01_gui_uses_mvp_window_size_600x420() {
+        let p = test_params();
+        let (width, height) = p.editor_state.size();
+        assert_eq!(width, 600, "GUI width must match MVP design spec");
+        assert_eq!(height, 420, "GUI height must match MVP design spec");
+    }
+
+    #[test]
+    fn gdx_02_full_mvp_parameter_surface_exists_for_gui_wiring() {
+        // Contract: these are the controls the MVP GUI must expose and wire.
+        let expected_ids = [
+            "delay_time",
+            "tempo_sync",
+            "note_division",
+            "feedback",
+            "mix",
+            "mode",
+            "reverse",
+            "ping_pong",
+            "stereo_offset",
+            "lowpass_freq",
+            "highpass_freq",
+            "mod_rate",
+            "mod_depth",
+            "drive",
+            "duck_amount",
+            "duck_threshold",
+        ];
+
+        let unique: HashSet<&str> = expected_ids.iter().copied().collect();
+        assert_eq!(
+            unique.len(),
+            expected_ids.len(),
+            "MVP control surface must have stable, unique parameter IDs"
+        );
+    }
+
+    #[test]
+    fn gdx_03_mode_contract_supports_modulation_enable_disable_logic() {
+        let p = test_params();
+        assert_eq!(
+            p.mode.default_plain_value(),
+            DelayMode::Digital,
+            "Digital default is required for predictable modulation-disabled startup"
+        );
+        assert!(
+            p.mod_rate.preview_plain(1.0) > p.mod_rate.preview_plain(0.0),
+            "Mod Rate must remain a valid continuous control when Analog mode enables it"
+        );
+        assert!(
+            p.mod_depth.preview_plain(1.0) > p.mod_depth.preview_plain(0.0),
+            "Mod Depth must remain a valid continuous control when Analog mode enables it"
+        );
+        assert!(
+            p.drive.preview_plain(1.0) > p.drive.preview_plain(0.0),
+            "Drive must remain a valid continuous control when Analog mode enables it"
+        );
+    }
+
+    #[test]
+    #[ignore = "GDX-04 visual gate: manual UI review required for Woodstock polish elements"]
+    fn gdx_04_visual_polish_manual_review_gate() {
+        // Manual acceptance check:
+        // - barbed-wire separators present
+        // - section accent treatments align with design system
+        // - decorative elements do not reduce control clarity
+        panic!("Manual visual gate for GDX-04");
+    }
+
+    #[test]
+    fn gdx_05_note_division_selector_has_expected_cardinality() {
+        // 13 options expected by the GUI selector contract.
+        let options = [
+            NoteDivision::Whole,
+            NoteDivision::Half,
+            NoteDivision::HalfDotted,
+            NoteDivision::HalfTriplet,
+            NoteDivision::Quarter,
+            NoteDivision::QuarterDotted,
+            NoteDivision::QuarterTriplet,
+            NoteDivision::Eighth,
+            NoteDivision::EighthDotted,
+            NoteDivision::EighthTriplet,
+            NoteDivision::Sixteenth,
+            NoteDivision::SixteenthDotted,
+            NoteDivision::SixteenthTriplet,
+        ];
+        assert_eq!(
+            options.len(),
+            13,
+            "GUI note-division selector must expose all planned musical subdivisions"
+        );
+    }
+
+    #[test]
+    #[ignore = "GDX-06 host gate: requires manual DAW smoke tests"]
+    fn gdx_06_host_smoke_test_matrix_gate() {
+        // Manual acceptance check in release candidate:
+        // Ableton + REAPER + Bitwig + one additional host:
+        // - insert plugin/open GUI
+        // - automate 3+ params during playback
+        // - save/close/reopen session
+        // - repeatedly open/close GUI
+        // - verify resize/HiDPI behavior
+        panic!("Manual host smoke-test gate for GDX-06");
+    }
+
+    #[test]
+    #[ignore = "GDX-07 gate: enable after release metadata URLs/emails are finalized"]
+    fn gdx_07_release_metadata_is_filled() {
+        assert!(!GenXDelay::URL.is_empty(), "Plugin URL must be set for release");
+        assert!(!GenXDelay::EMAIL.is_empty(), "Plugin support email must be set for release");
+        assert!(
+            GenXDelay::CLAP_MANUAL_URL.is_some(),
+            "CLAP manual URL should be present for release support"
+        );
+        assert!(
+            GenXDelay::CLAP_SUPPORT_URL.is_some(),
+            "CLAP support URL should be present for release support"
+        );
+    }
+
+    #[test]
+    #[ignore = "GDX-08 warning gate: enforce with clippy -D warnings in release CI"]
+    fn gdx_08_no_avoidable_dead_code_or_warning_gate() {
+        // CI/command gate:
+        // cargo clippy -p genx_delay --all-targets -- -D warnings
+        panic!("Warning-clean gate for GDX-08");
+    }
 }

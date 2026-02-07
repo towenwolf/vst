@@ -10,16 +10,17 @@ Source snapshot: `plugins/genx_delay/src/lib.rs` + `plugins/genx_delay/src/edito
 - Parameters implemented in `GenXDelayParams` (16 user-facing params).
 - Tempo-sync engine + note-division math implemented in DSP.
 - GUI/editor integration exists and opens successfully.
-- Unit/usability tests passing (`cargo test -p genx_delay`: 40 passed).
+- Unit/usability tests passing (`cargo test -p genx_delay`: 44 passed, 4 ignored gates).
+- **GDX-01**: Full 600x420 GUI layout built — 2-row, 3-column section grid (TIME/MAIN/STEREO + TONE/MODULATION/DUCK), all design colors, GDX-01 gate test enabled and passing.
 
 ## In Progress
-- None (board initialized).
+- None.
 
 ## To Do (Remaining MVP Work)
 
 | ID | Priority | Task | Why it is still open | Definition of Done |
 |---|---|---|---|---|
-| GDX-01 | P0 | Build full 600x420 GUI layout | Current window is 300x200 placeholder and only partially implements design sections | `editor.rs` uses 600x420 default, full 2-row layout exists (TIME/MAIN/STEREO/TONE/MODULATION/DUCK) |
+| ~~GDX-01~~ | ~~P0~~ | ~~Build full 600x420 GUI layout~~ | ~~Done~~ | ~~Done~~ |
 | GDX-02 | P0 | Wire all missing controls in GUI | Current GUI only exposes Delay Time, Reverse, Feedback, Mix | GUI exposes and writes: Tempo Sync, Note Division, Mode, Ping Pong, Stereo Offset, HP/LP, Mod Rate/Depth/Drive, Duck Amount/Threshold |
 | GDX-03 | P0 | Add mode-dependent UI states | Design requires modulation controls to be disabled in Digital mode | Mod controls are visually distinct and non-interactive when `Mode=Digital`; interactive when `Mode=Analog` |
 | GDX-04 | P1 | Add design polish elements | Woodstock visuals are only partially represented | Barbed-wire separators + section accents implemented without breaking control usability |

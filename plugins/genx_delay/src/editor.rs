@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use crate::GenXDelayParams;
 
-const WINDOW_WIDTH: u32 = 300;
-const WINDOW_HEIGHT: u32 = 200;
+const WINDOW_WIDTH: u32 = 600;
+const WINDOW_HEIGHT: u32 = 420;
 
 // Woodstock 99 color palette
 const BG_MAIN: egui::Color32 = egui::Color32::from_rgb(235, 228, 215);
@@ -18,6 +18,9 @@ const TEXT_DARK: egui::Color32 = egui::Color32::from_rgb(45, 40, 35);
 const TRIBAL_BROWN: egui::Color32 = egui::Color32::from_rgb(75, 55, 40);
 const ACCENT_WARM: egui::Color32 = egui::Color32::from_rgb(180, 95, 65);
 const ACCENT_OLIVE: egui::Color32 = egui::Color32::from_rgb(105, 115, 80);
+const ACCENT_NAVY: egui::Color32 = egui::Color32::from_rgb(60, 70, 90);
+const RUST: egui::Color32 = egui::Color32::from_rgb(140, 75, 50);
+const DOVE_GOLD: egui::Color32 = egui::Color32::from_rgb(175, 155, 100);
 
 pub fn default_state() -> Arc<EguiState> {
     EguiState::from_size(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -104,6 +107,11 @@ fn handle_slider_param(
     }
 }
 
+fn section_label(ui: &mut egui::Ui, text: &str, color: egui::Color32) {
+    ui.label(egui::RichText::new(text).small().strong().color(color));
+    ui.add_space(4.0);
+}
+
 pub fn create(
     params: Arc<GenXDelayParams>,
     editor_state: Arc<EguiState>,
@@ -117,8 +125,9 @@ pub fn create(
             apply_theme(egui_ctx);
 
             ResizableWindow::new("genx_delay")
-                .min_size([300.0, 200.0])
+                .min_size([600.0, 420.0])
                 .show(egui_ctx, &state_for_resize, |ui| {
+                    // ── Header ──
                     ui.vertical_centered(|ui| {
                         ui.label(egui::RichText::new("GENX DELAY").heading().color(TEXT_DARK));
                         ui.label(
@@ -128,12 +137,13 @@ pub fn create(
                         );
                     });
 
-                    ui.add_space(12.0);
+                    ui.add_space(10.0);
 
-                    ui.columns(2, |columns| {
-                        columns[0].group(|ui| {
-                            ui.label(egui::RichText::new("TIME").small().color(ACCENT_WARM));
-                            ui.add_space(6.0);
+                    // ── Row 1: TIME | MAIN | STEREO ──
+                    ui.columns(3, |cols| {
+                        // TIME section
+                        cols[0].group(|ui| {
+                            section_label(ui, "TIME", ACCENT_WARM);
 
                             let mut delay_time_value = params.delay_time.value();
                             handle_slider_param(
@@ -141,7 +151,7 @@ pub fn create(
                                 setter,
                                 &params.delay_time,
                                 &mut delay_time_value,
-                                "Delay Time (ms)",
+                                "Delay (ms)",
                                 1.0..=2500.0,
                             );
 
@@ -154,11 +164,19 @@ pub fn create(
                                 &mut reverse_value,
                                 "Reverse",
                             );
+
+                            // Tempo Sync + Note Division — controls wired in GDX-02
+                            ui.add_space(4.0);
+                            ui.label(
+                                egui::RichText::new("Sync / Div")
+                                    .small()
+                                    .color(TEXT_DARK),
+                            );
                         });
 
-                        columns[1].group(|ui| {
-                            ui.label(egui::RichText::new("MAIN").small().color(ACCENT_OLIVE));
-                            ui.add_space(6.0);
+                        // MAIN section
+                        cols[1].group(|ui| {
+                            section_label(ui, "MAIN", ACCENT_OLIVE);
 
                             let mut feedback_value = params.feedback.value();
                             handle_slider_param(
@@ -178,6 +196,91 @@ pub fn create(
                                 &mut mix_value,
                                 "Mix",
                                 0.0..=1.0,
+                            );
+
+                            // Mode selector — wired in GDX-02
+                            ui.add_space(4.0);
+                            ui.label(
+                                egui::RichText::new("Mode")
+                                    .small()
+                                    .color(TEXT_DARK),
+                            );
+                        });
+
+                        // STEREO section
+                        cols[2].group(|ui| {
+                            section_label(ui, "STEREO", ACCENT_NAVY);
+
+                            // Ping Pong + Stereo Offset — controls wired in GDX-02
+                            ui.label(
+                                egui::RichText::new("Ping Pong")
+                                    .small()
+                                    .color(TEXT_DARK),
+                            );
+                            ui.add_space(4.0);
+                            ui.label(
+                                egui::RichText::new("Offset")
+                                    .small()
+                                    .color(TEXT_DARK),
+                            );
+                        });
+                    });
+
+                    ui.add_space(8.0);
+
+                    // ── Row 2: TONE | MODULATION | DUCK ──
+                    ui.columns(3, |cols| {
+                        // TONE section
+                        cols[0].group(|ui| {
+                            section_label(ui, "TONE", TRIBAL_BROWN);
+
+                            // HP / LP — controls wired in GDX-02
+                            ui.label(
+                                egui::RichText::new("High-Pass")
+                                    .small()
+                                    .color(TEXT_DARK),
+                            );
+                            ui.add_space(4.0);
+                            ui.label(
+                                egui::RichText::new("Low-Pass")
+                                    .small()
+                                    .color(TEXT_DARK),
+                            );
+                        });
+
+                        // MODULATION section
+                        cols[1].group(|ui| {
+                            section_label(ui, "MODULATION", RUST);
+                            ui.label(
+                                egui::RichText::new("(Analog only)")
+                                    .small()
+                                    .color(RUST),
+                            );
+
+                            // Rate / Depth / Drive — controls wired in GDX-02
+                            ui.add_space(4.0);
+                            ui.label(
+                                egui::RichText::new("Rate / Depth / Drive")
+                                    .small()
+                                    .color(TEXT_DARK),
+                            );
+                        });
+
+                        // DUCK section
+                        cols[2].group(|ui| {
+                            section_label(ui, "DUCK", DOVE_GOLD);
+
+                            // Amount / Threshold — controls wired in GDX-02
+                            ui.label(
+                                egui::RichText::new("Amount")
+                                    .small()
+                                    .color(TEXT_DARK),
+                            );
+                            ui.add_space(4.0);
+                            ui.label(
+                                egui::RichText::new("Threshold")
+                                    .small()
+                                    .color(TEXT_DARK),
                             );
                         });
                     });

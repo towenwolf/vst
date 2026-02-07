@@ -239,7 +239,14 @@ fn handle_enum_buttons<T: Enum + PartialEq + Copy + 'static>(
         let current = param.value();
         for (idx, name) in T::variants().iter().enumerate() {
             let variant = T::from_index(idx);
-            if ui.selectable_label(current == variant, *name).clicked() {
+            let is_selected = current == variant;
+            let text_color = if is_selected {
+                BG_PANEL_DARK
+            } else {
+                POSTER_WHITE
+            };
+            let button_text = egui::RichText::new(*name).color(text_color);
+            if ui.selectable_label(is_selected, button_text).clicked() {
                 setter.begin_set_parameter(param);
                 setter.set_parameter(param, variant);
                 setter.end_set_parameter(param);

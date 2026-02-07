@@ -26,7 +26,7 @@ pub fn default_state() -> Arc<EguiState> {
     EguiState::from_size(WINDOW_WIDTH, WINDOW_HEIGHT)
 }
 
-fn apply_theme(ctx: &egui::Context) {
+fn apply_theme(ctx: &egui::Context, scale: f32) {
     let mut visuals = egui::Visuals::light();
 
     // Background
@@ -34,42 +34,55 @@ fn apply_theme(ctx: &egui::Context) {
     visuals.window_fill = BG_MAIN;
     visuals.extreme_bg_color = BG_PANEL;
 
-    // Widget colors
+    // Widget colors (stroke widths scale)
     visuals.widgets.inactive.bg_fill = BG_PANEL;
-    visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0, TEXT_DARK);
+    visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0 * scale, TEXT_DARK);
     visuals.widgets.inactive.weak_bg_fill = BG_PANEL;
 
     visuals.widgets.hovered.bg_fill = ACCENT_OLIVE;
-    visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.5, BG_MAIN);
+    visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.5 * scale, BG_MAIN);
     visuals.widgets.hovered.weak_bg_fill = ACCENT_OLIVE;
 
     visuals.widgets.active.bg_fill = ACCENT_OLIVE;
-    visuals.widgets.active.fg_stroke = egui::Stroke::new(2.0, BG_MAIN);
+    visuals.widgets.active.fg_stroke = egui::Stroke::new(2.0 * scale, BG_MAIN);
     visuals.widgets.active.weak_bg_fill = ACCENT_OLIVE;
 
-    visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0, TEXT_DARK);
+    visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0 * scale, TEXT_DARK);
     visuals.widgets.noninteractive.bg_fill = BG_MAIN;
 
     // Slider rail
     visuals.selection.bg_fill = ACCENT_OLIVE;
-    visuals.selection.stroke = egui::Stroke::new(1.0, ACCENT_OLIVE);
+    visuals.selection.stroke = egui::Stroke::new(1.0 * scale, ACCENT_OLIVE);
 
     // Window rounding and borders
-    visuals.window_stroke = egui::Stroke::new(1.0, TRIBAL_BROWN);
+    visuals.window_stroke = egui::Stroke::new(1.0 * scale, TRIBAL_BROWN);
 
     ctx.set_visuals(visuals);
 
-    // Font sizes
+    // Font sizes — scale proportionally with window
     let mut style = (*ctx.style()).clone();
     style
         .text_styles
-        .insert(egui::TextStyle::Heading, egui::FontId::proportional(24.0));
+        .insert(egui::TextStyle::Heading, egui::FontId::proportional(24.0 * scale));
     style
         .text_styles
-        .insert(egui::TextStyle::Body, egui::FontId::proportional(11.0));
+        .insert(egui::TextStyle::Body, egui::FontId::proportional(11.0 * scale));
     style
         .text_styles
-        .insert(egui::TextStyle::Small, egui::FontId::proportional(9.0));
+        .insert(egui::TextStyle::Button, egui::FontId::proportional(11.0 * scale));
+    style
+        .text_styles
+        .insert(egui::TextStyle::Monospace, egui::FontId::monospace(11.0 * scale));
+    style
+        .text_styles
+        .insert(egui::TextStyle::Small, egui::FontId::proportional(9.0 * scale));
+
+    // Widget sizing — scale interaction targets and spacing
+    style.spacing.interact_size = egui::vec2(40.0 * scale, 18.0 * scale);
+    style.spacing.slider_width = 100.0 * scale;
+    style.spacing.item_spacing = egui::vec2(8.0 * scale, 3.0 * scale);
+    style.spacing.button_padding = egui::vec2(4.0 * scale, 1.0 * scale);
+
     ctx.set_style(style);
 }
 
@@ -107,9 +120,17 @@ fn handle_slider_param(
     }
 }
 
-fn section_label(ui: &mut egui::Ui, text: &str, color: egui::Color32) {
+fn section_label(ui: &mut egui::Ui, text: &str, color: egui::Color32, scale: f32) {
     ui.label(egui::RichText::new(text).small().strong().color(color));
-    ui.add_space(4.0);
+    ui.add_space(4.0 * scale);
+}
+
+/// Compute a uniform scale factor from the current window size relative to base.
+fn content_scale(editor_state: &EguiState) -> f32 {
+    let (w, h) = editor_state.size();
+    let sx = w as f32 / WINDOW_WIDTH as f32;
+    let sy = h as f32 / WINDOW_HEIGHT as f32;
+    sx.min(sy).max(0.5) // clamp to prevent illegibly small text
 }
 
 pub fn create(
@@ -122,7 +143,8 @@ pub fn create(
         (),
         |_, _| {},
         move |egui_ctx, setter, _state| {
-            apply_theme(egui_ctx);
+            let scale = content_scale(&state_for_resize);
+            apply_theme(egui_ctx, scale);
 
             ResizableWindow::new("genx_delay")
                 .min_size([600.0, 420.0])
@@ -137,13 +159,13 @@ pub fn create(
                         );
                     });
 
-                    ui.add_space(10.0);
+                    ui.add_space(10.0 * scale);
 
                     // ── Row 1: TIME | MAIN | STEREO ──
                     ui.columns(3, |cols| {
                         // TIME section
                         cols[0].group(|ui| {
-                            section_label(ui, "TIME", ACCENT_WARM);
+                            section_label(ui, "TIME", ACCENT_WARM, scale);
 
                             let mut delay_time_value = params.delay_time.value();
                             handle_slider_param(
@@ -155,7 +177,7 @@ pub fn create(
                                 1.0..=2500.0,
                             );
 
-                            ui.add_space(4.0);
+                            ui.add_space(4.0 * scale);
                             let mut reverse_value = params.reverse.value();
                             handle_bool_param(
                                 ui,
@@ -166,7 +188,7 @@ pub fn create(
                             );
 
                             // Tempo Sync + Note Division — controls wired in GDX-02
-                            ui.add_space(4.0);
+                            ui.add_space(4.0 * scale);
                             ui.label(
                                 egui::RichText::new("Sync / Div")
                                     .small()
@@ -176,7 +198,7 @@ pub fn create(
 
                         // MAIN section
                         cols[1].group(|ui| {
-                            section_label(ui, "MAIN", ACCENT_OLIVE);
+                            section_label(ui, "MAIN", ACCENT_OLIVE, scale);
 
                             let mut feedback_value = params.feedback.value();
                             handle_slider_param(
@@ -199,7 +221,7 @@ pub fn create(
                             );
 
                             // Mode selector — wired in GDX-02
-                            ui.add_space(4.0);
+                            ui.add_space(4.0 * scale);
                             ui.label(
                                 egui::RichText::new("Mode")
                                     .small()
@@ -209,7 +231,7 @@ pub fn create(
 
                         // STEREO section
                         cols[2].group(|ui| {
-                            section_label(ui, "STEREO", ACCENT_NAVY);
+                            section_label(ui, "STEREO", ACCENT_NAVY, scale);
 
                             // Ping Pong + Stereo Offset — controls wired in GDX-02
                             ui.label(
@@ -217,7 +239,7 @@ pub fn create(
                                     .small()
                                     .color(TEXT_DARK),
                             );
-                            ui.add_space(4.0);
+                            ui.add_space(4.0 * scale);
                             ui.label(
                                 egui::RichText::new("Offset")
                                     .small()
@@ -226,13 +248,13 @@ pub fn create(
                         });
                     });
 
-                    ui.add_space(8.0);
+                    ui.add_space(8.0 * scale);
 
                     // ── Row 2: TONE | MODULATION | DUCK ──
                     ui.columns(3, |cols| {
                         // TONE section
                         cols[0].group(|ui| {
-                            section_label(ui, "TONE", TRIBAL_BROWN);
+                            section_label(ui, "TONE", TRIBAL_BROWN, scale);
 
                             // HP / LP — controls wired in GDX-02
                             ui.label(
@@ -240,7 +262,7 @@ pub fn create(
                                     .small()
                                     .color(TEXT_DARK),
                             );
-                            ui.add_space(4.0);
+                            ui.add_space(4.0 * scale);
                             ui.label(
                                 egui::RichText::new("Low-Pass")
                                     .small()
@@ -250,7 +272,7 @@ pub fn create(
 
                         // MODULATION section
                         cols[1].group(|ui| {
-                            section_label(ui, "MODULATION", RUST);
+                            section_label(ui, "MODULATION", RUST, scale);
                             ui.label(
                                 egui::RichText::new("(Analog only)")
                                     .small()
@@ -258,7 +280,7 @@ pub fn create(
                             );
 
                             // Rate / Depth / Drive — controls wired in GDX-02
-                            ui.add_space(4.0);
+                            ui.add_space(4.0 * scale);
                             ui.label(
                                 egui::RichText::new("Rate / Depth / Drive")
                                     .small()
@@ -268,7 +290,7 @@ pub fn create(
 
                         // DUCK section
                         cols[2].group(|ui| {
-                            section_label(ui, "DUCK", DOVE_GOLD);
+                            section_label(ui, "DUCK", DOVE_GOLD, scale);
 
                             // Amount / Threshold — controls wired in GDX-02
                             ui.label(
@@ -276,7 +298,7 @@ pub fn create(
                                     .small()
                                     .color(TEXT_DARK),
                             );
-                            ui.add_space(4.0);
+                            ui.add_space(4.0 * scale);
                             ui.label(
                                 egui::RichText::new("Threshold")
                                     .small()

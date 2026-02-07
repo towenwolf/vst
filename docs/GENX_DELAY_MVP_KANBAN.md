@@ -12,6 +12,7 @@ Source snapshot: `plugins/genx_delay/src/lib.rs` + `plugins/genx_delay/src/edito
 - GUI/editor integration exists and opens successfully.
 - Unit/usability tests passing (`cargo test -p genx_delay`: 44 passed, 4 ignored gates).
 - **GDX-01**: Full 600x420 GUI layout built — 2-row, 3-column section grid (TIME/MAIN/STEREO + TONE/MODULATION/DUCK), all design colors, GDX-01 gate test enabled and passing.
+- **GDX-00**: Content scaling on resize — `content_scale()` computes uniform scale factor from current vs base window size; `apply_theme` scales font sizes (Heading/Body/Button/Small/Monospace), widget interaction sizes, slider width, item spacing, button padding, and stroke widths proportionally; all `add_space()` calls in the layout multiply by `scale`; minimum scale clamped to 0.5.
 
 ## In Progress
 - None.
@@ -20,11 +21,12 @@ Source snapshot: `plugins/genx_delay/src/lib.rs` + `plugins/genx_delay/src/edito
 
 | ID | Priority | Task | Why it is still open | Definition of Done |
 |---|---|---|---|---|
-| GDX-00 | P0 | Fix resizable-window content scaling | Resizable window size changes, but text/control sizing does not scale with it, causing readability/usability issues | On window resize, typography and controls scale proportionally and remain readable/usable at min/max sizes (no clipped labels, no tiny text) |
+| ~~GDX-00~~ | ~~P0~~ | ~~Fix resizable-window content scaling~~ | ~~Done~~ | ~~Done~~ |
 | ~~GDX-01~~ | ~~P0~~ | ~~Build full 600x420 GUI layout~~ | ~~Done~~ | ~~Done~~ |
 | GDX-02 | P0 | Wire all missing controls in GUI | Current GUI only exposes Delay Time, Reverse, Feedback, Mix | GUI exposes and writes: Tempo Sync, Note Division, Mode, Ping Pong, Stereo Offset, HP/LP, Mod Rate/Depth/Drive, Duck Amount/Threshold |
 | GDX-03 | P0 | Add mode-dependent UI states | Design requires modulation controls to be disabled in Digital mode | Mod controls are visually distinct and non-interactive when `Mode=Digital`; interactive when `Mode=Analog` |
 | GDX-04 | P1 | Add design polish elements | Woodstock visuals are only partially represented | Barbed-wire separators + section accents implemented without breaking control usability |
+| GDX-09 | P1 | Integrate Woodstock icon pack into GUI | Icon assets now exist but are not yet rendered in the `egui` editor | Decorative dove/barbed-wire/tribal/grunge motifs are integrated with scaled placement and low-opacity styling; no control readability regressions |
 | GDX-05 | P0 | Add GUI interaction tests for new controls | Existing tests cover note division semantics but not full editor control presence/contract | Tests validate selector option uniqueness/order, mode gating logic, and default UI state parity with params |
 | GDX-06 | P0 | Host smoke test pass (manual) | Repo standards require DAW verification before release | Smoke checks recorded for at least Ableton Live, REAPER, Bitwig, and one additional host: insert/open GUI, automate 3+ params, save/reload, repeated open/close, resize/HiDPI |
 | GDX-07 | P1 | Fill plugin metadata/support links | `URL`, `EMAIL`, manual/support URLs are empty/None | Metadata fields set to valid values intended for release builds |
@@ -39,7 +41,8 @@ Source snapshot: `plugins/genx_delay/src/lib.rs` + `plugins/genx_delay/src/edito
 2. GDX-02
 3. GDX-03
 4. GDX-05
-5. GDX-06
-6. GDX-07
-7. GDX-08
-8. GDX-04 (or defer based on scope)
+5. GDX-09
+6. GDX-06
+7. GDX-07
+8. GDX-08
+9. GDX-04 (or defer based on scope)

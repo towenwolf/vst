@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" role="img" aria-label="Grunge speckle overlay">
+  <rect width="600" height="420" fill="none"/>
+  <g fill="#4B3728" opacity="0.12">
+    <circle cx="28" cy="37" r="2.2"/>
+    <circle cx="61" cy="82" r="1.7"/>
+    <circle cx="112" cy="44" r="1.5"/>
+    <circle cx="147" cy="109" r="2.3"/>
+    <circle cx="205" cy="67" r="1.8"/>
+    <circle cx="244" cy="118" r="1.4"/>
+    <circle cx="301" cy="38" r="2.0"/>
+    <circle cx="338" cy="95" r="1.6"/>
+    <circle cx="396" cy="61" r="1.9"/>
+    <circle cx="432" cy="121" r="1.5"/>
+    <circle cx="497" cy="75" r="2.1"/>
+    <circle cx="554" cy="111" r="1.6"/>
+    <circle cx="581" cy="46" r="1.8"/>
+
+    <circle cx="34" cy="202" r="1.9"/>
+    <circle cx="89" cy="247" r="1.4"/>
+    <circle cx="136" cy="193" r="2.1"/>
+    <circle cx="182" cy="258" r="1.8"/>
+    <circle cx="237" cy="212" r="1.6"/>
+    <circle cx="284" cy="275" r="2.3"/>
+    <circle cx="327" cy="221" r="1.5"/>
+    <circle cx="373" cy="268" r="2.0"/>
+    <circle cx="426" cy="207" r="1.7"/>
+    <circle cx="472" cy="261" r="2.2"/>
+    <circle cx="526" cy="214" r="1.5"/>
+    <circle cx="571" cy="246" r="1.8"/>
+
+    <circle cx="18" cy="351" r="1.5"/>
+    <circle cx="72" cy="381" r="1.9"/>
+    <circle cx="121" cy="337" r="1.7"/>
+    <circle cx="169" cy="399" r="2.1"/>
+    <circle cx="223" cy="347" r="1.4"/>
+    <circle cx="271" cy="392" r="1.8"/>
+    <circle cx="315" cy="334" r="2.2"/>
+    <circle cx="362" cy="403" r="1.6"/>
+    <circle cx="414" cy="349" r="1.9"/>
+    <circle cx="459" cy="387" r="1.5"/>
+    <circle cx="517" cy="342" r="2.0"/>
+    <circle cx="562" cy="401" r="1.7"/>
+  </g>
+  <g stroke="#2D2823" stroke-width="0.8" opacity="0.1">
+    <line x1="84" y1="30" x2="103" y2="42"/>
+    <line x1="258" y1="152" x2="274" y2="146"/>
+    <line x1="489" y1="174" x2="501" y2="187"/>
+    <line x1="146" y1="298" x2="163" y2="288"/>
+    <line x1="354" y1="321" x2="372" y2="333"/>
+    <line x1="540" y1="332" x2="555" y2="324"/>
+  </g>
+</svg>

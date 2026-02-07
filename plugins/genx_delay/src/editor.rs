@@ -23,6 +23,8 @@ const DOVE_WHITE: egui::Color32 = egui::Color32::from_rgb(255, 252, 245);
 const ACCENT_TONE: egui::Color32 = egui::Color32::from_rgb(220, 190, 170);
 const HIGHLIGHT_GOLD: egui::Color32 = egui::Color32::from_rgb(255, 215, 140);
 
+#[cfg(test)]
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct WoodstockDecorationMetrics {
     pub(crate) vine_border_opacity: f32,
@@ -42,6 +44,8 @@ pub(crate) struct SectionAccentMetrics {
     pub(crate) ornament_gap: f32,
 }
 
+#[cfg(test)]
+#[allow(dead_code)]
 pub(crate) fn woodstock_decoration_metrics(scale: f32) -> WoodstockDecorationMetrics {
     let clamped_scale = scale.clamp(0.5, 2.0);
     WoodstockDecorationMetrics {
@@ -108,10 +112,7 @@ fn setup_custom_fonts(ctx: &egui::Context) {
     // Register a named "Righteous" family for the heading, with Josefin Sans fallback
     fonts.families.insert(
         egui::FontFamily::Name("Righteous".into()),
-        vec![
-            "Righteous".to_owned(),
-            "JosefinSans".to_owned(),
-        ],
+        vec!["Righteous".to_owned(), "JosefinSans".to_owned()],
     );
 
     ctx.set_fonts(fonts);
@@ -311,7 +312,11 @@ fn draw_section_accent(ui: &mut egui::Ui, color: egui::Color32, scale: f32) {
     // Flower bud circles with outer petal ring
     let bud_left = egui::pos2(center - metrics.ornament_gap, y);
     let bud_right = egui::pos2(center + metrics.ornament_gap, y);
-    painter.circle_filled(bud_left, metrics.ornament_radius, color.gamma_multiply(0.52));
+    painter.circle_filled(
+        bud_left,
+        metrics.ornament_radius,
+        color.gamma_multiply(0.52),
+    );
     painter.circle_filled(
         bud_right,
         metrics.ornament_radius,
@@ -607,6 +612,8 @@ fn draw_adaptive_control_grid(
 // ── 1969 Poster Decoration Functions ──
 
 /// Dove perched on a guitar neck — the iconic 1969 Woodstock poster silhouette.
+#[cfg(test)]
+#[allow(dead_code)]
 fn draw_dove_on_guitar(
     painter: &egui::Painter,
     top_left: egui::Pos2,
@@ -686,12 +693,9 @@ fn draw_dove_on_guitar(
 }
 
 /// Scattered stars and dots — cosmic festival night sky.
-fn draw_starfield(
-    painter: &egui::Painter,
-    rect: egui::Rect,
-    scale: f32,
-    color: egui::Color32,
-) {
+#[cfg(test)]
+#[allow(dead_code)]
+fn draw_starfield(painter: &egui::Painter, rect: egui::Rect, scale: f32, color: egui::Color32) {
     let area = rect.width() * rect.height();
     // Fewer points than grunge speckles — 1969 is cleaner
     let count = ((area / 4000.0).round() as usize).clamp(40, 100);
@@ -742,6 +746,8 @@ fn draw_starfield(
 }
 
 #[inline]
+#[cfg(test)]
+#[allow(dead_code)]
 fn mix_u32(mut x: u32) -> u32 {
     x ^= x >> 16;
     x = x.wrapping_mul(0x7FEB_352D);
@@ -789,6 +795,8 @@ fn content_scale_from_rect(rect: egui::Rect) -> f32 {
     content_scale_from_dimensions(rect.width(), rect.height())
 }
 
+#[cfg(test)]
+#[allow(dead_code)]
 fn scaled_margin(scale: f32, margin: f32) -> f32 {
     margin * scale
 }
@@ -809,6 +817,8 @@ pub(crate) fn resize_geometry_metrics_for_dimensions(
     }
 }
 
+#[cfg(test)]
+#[allow(dead_code)]
 fn draw_woodstock_decorations(ui: &egui::Ui, rect: egui::Rect, scale: f32) {
     let painter = ui.painter();
     let metrics = woodstock_decoration_metrics(scale);
@@ -892,6 +902,8 @@ fn draw_woodstock_decorations(ui: &egui::Ui, rect: egui::Rect, scale: f32) {
 }
 
 /// Organic vine line with leaf shapes — replaces barbed wire.
+#[cfg(test)]
+#[allow(dead_code)]
 fn draw_vine_border(
     painter: &egui::Painter,
     rect: egui::Rect,
@@ -953,6 +965,8 @@ fn draw_vine_border(
 }
 
 /// Flower cluster in each corner — replaces tribal corner motifs.
+#[cfg(test)]
+#[allow(dead_code)]
 fn draw_flower_corner(
     painter: &egui::Painter,
     rect: egui::Rect,
@@ -1050,6 +1064,8 @@ fn draw_flower_corner(
 }
 
 /// Classic peace sign — replaces rust stamp.
+#[cfg(test)]
+#[allow(dead_code)]
 fn draw_peace_symbol(
     painter: &egui::Painter,
     center: egui::Pos2,
@@ -1115,15 +1131,13 @@ pub fn create(
                 let ui_rect = ui.max_rect();
                 let scale = content_scale_from_rect(ui_rect);
                 apply_theme(egui_ctx, scale);
-                draw_woodstock_decorations(ui, ui_rect, scale);
 
                 // ── Header ──
                 ui.vertical_centered(|ui| {
-                    ui.label(egui::RichText::new("GENX DELAY").heading().color(TEXT_CREAM));
                     ui.label(
-                        egui::RichText::new("— WOODSTOCK 99 —")
-                            .small()
-                            .color(POSTER_WHITE),
+                        egui::RichText::new("GENX DELAY")
+                            .heading()
+                            .color(TEXT_CREAM),
                     );
                 });
 

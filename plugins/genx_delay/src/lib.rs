@@ -1200,6 +1200,47 @@ mod gui_usability_tests {
     // =========================================================================
 
     #[test]
+    fn gdx_00_resize_scaling_geometry_contract() {
+        let tiny = editor::resize_geometry_metrics_for_dimensions(240.0, 150.0);
+        let base = editor::resize_geometry_metrics_for_dimensions(600.0, 420.0);
+        let large = editor::resize_geometry_metrics_for_dimensions(1200.0, 840.0);
+
+        assert_eq!(
+            tiny.content_scale, 0.5,
+            "content scale must clamp at 0.5 for very small window sizes"
+        );
+        assert!(
+            tiny.content_scale < base.content_scale && base.content_scale < large.content_scale,
+            "content scale must increase monotonically with larger window dimensions"
+        );
+
+        assert!(
+            tiny.barbed_wire_margin <= base.barbed_wire_margin
+                && base.barbed_wire_margin < large.barbed_wire_margin,
+            "barbed-wire margins should stay stable at small sizes and increase above base scale"
+        );
+        assert!(
+            tiny.tribal_margin < base.tribal_margin && base.tribal_margin < large.tribal_margin,
+            "tribal corner margins should scale with content size"
+        );
+        assert!(
+            tiny.tribal_outer_stroke < base.tribal_outer_stroke
+                && base.tribal_outer_stroke < large.tribal_outer_stroke,
+            "tribal outer stroke must scale with content size"
+        );
+        assert!(
+            tiny.tribal_inner_stroke < base.tribal_inner_stroke
+                && base.tribal_inner_stroke < large.tribal_inner_stroke,
+            "tribal inner stroke must scale with content size"
+        );
+        assert!(
+            tiny.rust_stamp_outer_stroke < base.rust_stamp_outer_stroke
+                && base.rust_stamp_outer_stroke < large.rust_stamp_outer_stroke,
+            "rust stamp stroke must scale with content size"
+        );
+    }
+
+    #[test]
     fn gdx_01_gui_uses_mvp_window_size_600x420() {
         let p = test_params();
         let (width, height) = p.editor_state.size();

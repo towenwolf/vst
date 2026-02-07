@@ -104,6 +104,45 @@ impl NoteDivision {
     }
 }
 
+#[inline]
+fn compute_delay_samples(
+    base_delay_samples: f32,
+    offset_samples: f32,
+    ping_pong: bool,
+) -> (f32, f32) {
+    if ping_pong {
+        // Strict ping-pong uses equal L/R delay times for deterministic alternation.
+        (base_delay_samples, base_delay_samples)
+    } else {
+        (base_delay_samples, base_delay_samples + offset_samples)
+    }
+}
+
+#[inline]
+fn compute_delay_inputs(
+    input_left: f32,
+    input_right: f32,
+    feedback_left: f32,
+    feedback_right: f32,
+    feedback: f32,
+    ping_pong: bool,
+) -> (f32, f32) {
+    if ping_pong {
+        // Strict ping-pong: mono input starts on left and repeats alternate through cross-feedback.
+        let mono_in = 0.5 * (input_left + input_right);
+        (
+            mono_in + feedback_right * feedback,
+            feedback_left * feedback,
+        )
+    } else {
+        // Normal stereo delay path (unchanged).
+        (
+            input_left + feedback_left * feedback,
+            input_right + feedback_right * feedback,
+        )
+    }
+}
+
 /// Plugin parameters.
 #[derive(Params)]
 pub struct GenXDelayParams {
@@ -496,9 +535,10 @@ impl Plugin for GenXDelay {
             let base_delay_samples = delay_time_ms * self.sample_rate / 1000.0;
             let offset_samples = stereo_offset_ms * self.sample_rate / 1000.0;
 
-            // Base delay times for L/R
-            let base_delay_l = base_delay_samples;
-            let base_delay_r = base_delay_samples + offset_samples;
+            // Base delay times for L/R.
+            // In strict ping-pong mode, stereo offset is neutralized for clean alternation.
+            let (base_delay_l, base_delay_r) =
+                compute_delay_samples(base_delay_samples, offset_samples, ping_pong);
 
             // Apply modulation in analog mode
             let (delay_samples_l, delay_samples_r) =
@@ -566,20 +606,16 @@ impl Plugin for GenXDelay {
             let saturated_left = self.saturator_left.process(filtered_left);
             let saturated_right = self.saturator_right.process(filtered_right);
 
-            // Calculate what goes into the delay lines
-            let (delay_input_left, delay_input_right) = if ping_pong {
-                // Ping-pong: cross-feed the feedback
-                (
-                    input_left + self.feedback_right * feedback,
-                    input_right + self.feedback_left * feedback,
-                )
-            } else {
-                // Normal stereo delay
-                (
-                    input_left + saturated_left * feedback,
-                    input_right + saturated_right * feedback,
-                )
-            };
+            // Calculate what goes into the delay lines.
+            // Use already-processed feedback taps to keep a stable one-sample feedback loop.
+            let (delay_input_left, delay_input_right) = compute_delay_inputs(
+                input_left,
+                input_right,
+                saturated_left,
+                saturated_right,
+                feedback,
+                ping_pong,
+            );
 
             // Write to delay lines (forward or reverse)
             if reverse {
@@ -924,6 +960,47 @@ mod gui_usability_tests {
         assert!(
             max_val <= 100.0,
             "Stereo offset max {max_val}ms should be <= 100ms to avoid flamming"
+        );
+    }
+
+    #[test]
+    fn ping_pong_neutralizes_stereo_offset_in_delay_times() {
+        let base = 4800.0;
+        let offset = 240.0;
+        let (l, r) = compute_delay_samples(base, offset, true);
+        assert_eq!(l, base, "Ping-pong left delay should use base delay time");
+        assert_eq!(r, base, "Ping-pong right delay should use base delay time");
+
+        let (l_stereo, r_stereo) = compute_delay_samples(base, offset, false);
+        assert_eq!(
+            l_stereo, base,
+            "Stereo left delay should use base delay time"
+        );
+        assert_eq!(
+            r_stereo,
+            base + offset,
+            "Stereo right delay should include configured offset"
+        );
+    }
+
+    #[test]
+    fn ping_pong_delay_input_path_is_strict_crossfeed() {
+        let (l, r) = compute_delay_inputs(0.8, 0.2, 0.3, 0.1, 0.5, true);
+        // Mono input is (0.8 + 0.2) * 0.5 = 0.5, then add crossed right feedback (0.1 * 0.5)
+        assert!(
+            (l - 0.55).abs() < 1e-6,
+            "Ping-pong left input should be mono input plus crossed right feedback"
+        );
+        // Right side should only receive crossed left feedback (0.3 * 0.5)
+        assert!(
+            (r - 0.15).abs() < 1e-6,
+            "Ping-pong right input should receive only crossed left feedback"
+        );
+
+        let (l_stereo, r_stereo) = compute_delay_inputs(0.8, 0.2, 0.3, 0.1, 0.5, false);
+        assert!(
+            (l_stereo - 0.95).abs() < 1e-6 && (r_stereo - 0.25).abs() < 1e-6,
+            "Stereo mode should retain independent per-channel feedback"
         );
     }
 

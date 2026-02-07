@@ -25,6 +25,14 @@ const MAX_DELAY_SECONDS: f32 = 2.5;
 
 /// Default L/R offset in milliseconds for subtle stereo width.
 const DEFAULT_LR_OFFSET_MS: f32 = 10.0;
+/// Output safety threshold (linear gain). ~-0.45 dBFS
+const SAFETY_LIMITER_THRESHOLD: f32 = 0.95;
+/// Stereo-linked safety limiter attack (seconds).
+const SAFETY_LIMITER_ATTACK_SEC: f32 = 0.001;
+/// Stereo-linked safety limiter release (seconds).
+const SAFETY_LIMITER_RELEASE_SEC: f32 = 0.100;
+/// Absolute cap on delay-line injection to reduce risk of runaway bursts.
+const FEEDBACK_INJECTION_CAP: f32 = 1.25;
 
 /// Delay mode: Digital (clean) or Analog (warm with modulation).
 #[derive(Enum, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -141,6 +149,46 @@ fn compute_delay_inputs(
             input_right + feedback_right * feedback,
         )
     }
+}
+
+#[inline]
+fn limiter_coeff(sample_rate: f32, time_sec: f32) -> f32 {
+    (-1.0 / (sample_rate * time_sec)).exp()
+}
+
+#[inline]
+fn update_safety_limiter(
+    stereo_peak: f32,
+    sample_rate: f32,
+    envelope: &mut f32,
+    gain: &mut f32,
+) -> f32 {
+    let attack = limiter_coeff(sample_rate.max(1.0), SAFETY_LIMITER_ATTACK_SEC);
+    let release = limiter_coeff(sample_rate.max(1.0), SAFETY_LIMITER_RELEASE_SEC);
+
+    // Peak follower with fast attack / slow release.
+    if stereo_peak > *envelope {
+        *envelope = attack * *envelope + (1.0 - attack) * stereo_peak;
+    } else {
+        *envelope = release * *envelope + (1.0 - release) * stereo_peak;
+    }
+
+    let target_gain = if *envelope > SAFETY_LIMITER_THRESHOLD {
+        SAFETY_LIMITER_THRESHOLD / envelope.max(1e-6)
+    } else {
+        1.0
+    };
+
+    // Gain smoothing: react quickly when attenuating, recover slower.
+    let gain_attack = limiter_coeff(sample_rate.max(1.0), 0.001);
+    let gain_release = limiter_coeff(sample_rate.max(1.0), 0.120);
+    if target_gain < *gain {
+        *gain = gain_attack * *gain + (1.0 - gain_attack) * target_gain;
+    } else {
+        *gain = gain_release * *gain + (1.0 - gain_release) * target_gain;
+    }
+
+    *gain
 }
 
 /// Plugin parameters.
@@ -375,6 +423,10 @@ struct GenXDelay {
     // Smoothers for delay time (avoid clicks)
     delay_smoother_left: OnePoleLP,
     delay_smoother_right: OnePoleLP,
+
+    // Safety limiter state (stereo-linked)
+    safety_limiter_envelope: f32,
+    safety_limiter_gain: f32,
 }
 
 impl Default for GenXDelay {
@@ -396,6 +448,8 @@ impl Default for GenXDelay {
             ducker: Ducker::default(),
             delay_smoother_left: OnePoleLP::default(),
             delay_smoother_right: OnePoleLP::default(),
+            safety_limiter_envelope: 0.0,
+            safety_limiter_gain: 1.0,
         }
     }
 }
@@ -489,6 +543,8 @@ impl Plugin for GenXDelay {
         self.ducker.reset();
         self.delay_smoother_left.reset();
         self.delay_smoother_right.reset();
+        self.safety_limiter_envelope = 0.0;
+        self.safety_limiter_gain = 1.0;
     }
 
     fn process(
@@ -616,6 +672,10 @@ impl Plugin for GenXDelay {
                 feedback,
                 ping_pong,
             );
+            let delay_input_left =
+                delay_input_left.clamp(-FEEDBACK_INJECTION_CAP, FEEDBACK_INJECTION_CAP);
+            let delay_input_right =
+                delay_input_right.clamp(-FEEDBACK_INJECTION_CAP, FEEDBACK_INJECTION_CAP);
 
             // Write to delay lines (forward or reverse)
             if reverse {
@@ -636,6 +696,17 @@ impl Plugin for GenXDelay {
 
             let output_left = input_left * (1.0 - mix) + wet_left * mix;
             let output_right = input_right * (1.0 - mix) + wet_right * mix;
+
+            // Safety stage: stereo-linked limiter + hard clamp.
+            let stereo_peak = output_left.abs().max(output_right.abs());
+            let limiter_gain = update_safety_limiter(
+                stereo_peak,
+                self.sample_rate,
+                &mut self.safety_limiter_envelope,
+                &mut self.safety_limiter_gain,
+            );
+            let output_left = (output_left * limiter_gain).clamp(-1.0, 1.0);
+            let output_right = (output_right * limiter_gain).clamp(-1.0, 1.0);
 
             // Write output
             *channel_samples.get_mut(0).unwrap() = output_left;
@@ -904,6 +975,42 @@ mod gui_usability_tests {
             max_val >= 0.9,
             "Feedback max {max_val} should be >= 0.9 to allow long, ambient tails"
         );
+    }
+
+    #[test]
+    fn safety_limiter_reduces_gain_on_excessive_output() {
+        let mut env = 0.0;
+        let mut gain = 1.0;
+        for _ in 0..256 {
+            let _ = update_safety_limiter(2.0, 48_000.0, &mut env, &mut gain);
+        }
+        assert!(
+            gain < 1.0,
+            "Safety limiter gain should reduce when peak exceeds threshold"
+        );
+        assert!(
+            env > SAFETY_LIMITER_THRESHOLD,
+            "Limiter envelope should track high peaks"
+        );
+    }
+
+    #[test]
+    fn safety_limiter_recovers_after_signal_drops() {
+        let mut env = 0.0;
+        let mut gain = 1.0;
+        for _ in 0..256 {
+            let _ = update_safety_limiter(2.0, 48_000.0, &mut env, &mut gain);
+        }
+        let reduced_gain = gain;
+
+        for _ in 0..4_096 {
+            let _ = update_safety_limiter(0.1, 48_000.0, &mut env, &mut gain);
+        }
+        assert!(
+            gain > reduced_gain,
+            "Safety limiter should release and recover gain when peaks drop"
+        );
+        assert!(gain <= 1.0 + 1e-6, "Limiter gain should never exceed unity");
     }
 
     #[test]

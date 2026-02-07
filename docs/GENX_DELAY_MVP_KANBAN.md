@@ -16,6 +16,8 @@ Source snapshot: `plugins/genx_delay/src/lib.rs` + `plugins/genx_delay/src/edito
 - **GDX-08**: Warning-clean gate validated (`cargo clippy -p genx_delay --all-targets -- -D warnings` passes).
 - **GDX-00**: Content scaling on resize — `content_scale()` computes uniform scale factor from current vs base window size; `apply_theme` scales font sizes (Heading/Body/Button/Small/Monospace), widget interaction sizes, slider width, item spacing, button padding, and stroke widths proportionally; all `add_space()` calls in the layout multiply by `scale`; minimum scale clamped to 0.5.
 - **GDX-02**: All 16 params wired in GUI — Tempo Sync checkbox, Note Division combo (13 options), Mode horizontal buttons (Digital|Analog), Ping Pong checkbox, Stereo Offset slider, HP/LP sliders, Mod Rate/Depth/Drive sliders, Duck Amount/Threshold sliders. Generic `handle_enum_buttons` and `handle_enum_combobox` helpers added with proper host gesture semantics.
+- **GDX-03**: Mode-dependent UI gating implemented in `editor.rs` — modulation section is visually muted and non-interactive in `Digital`, enabled in `Analog` via `ui.add_enabled_ui(modulation_enabled, ...)`; gating logic is shared through `modulation_controls_enabled(...)` and verified by tests.
+- **GDX-07**: Plugin metadata filled — URL, EMAIL, CLAP_MANUAL_URL, CLAP_SUPPORT_URL all set to valid GitHub-based values; gate test enabled and passing.
 
 ## In Progress
 - None.
@@ -27,12 +29,12 @@ Source snapshot: `plugins/genx_delay/src/lib.rs` + `plugins/genx_delay/src/edito
 | ~~GDX-00~~ | ~~P0~~ | ~~Fix resizable-window content scaling~~ | ~~Done~~ | ~~Done~~ |
 | ~~GDX-01~~ | ~~P0~~ | ~~Build full 600x420 GUI layout~~ | ~~Done~~ | ~~Done~~ |
 | ~~GDX-02~~ | ~~P0~~ | ~~Wire all missing controls in GUI~~ | ~~Done~~ | ~~Done~~ |
-| GDX-03 | P0 | Add mode-dependent UI states | Design requires modulation controls to be disabled in Digital mode | Mod controls are visually distinct and non-interactive when `Mode=Digital`; interactive when `Mode=Analog` |
+| ~~GDX-03~~ | ~~P0~~ | ~~Add mode-dependent UI states~~ | ~~Done~~ | ~~Done~~ |
 | GDX-04 | P1 | Add design polish elements | Woodstock visuals are only partially represented | Barbed-wire separators + section accents implemented without breaking control usability |
 | GDX-09 | P1 | Integrate Woodstock icon pack into GUI | Icon assets now exist but are not yet rendered in the `egui` editor | Decorative dove/barbed-wire/tribal/grunge motifs are integrated with scaled placement and low-opacity styling; no control readability regressions |
 | ~~GDX-05~~ | ~~P0~~ | ~~Add GUI interaction tests for new controls~~ | ~~Done~~ | ~~Done~~ |
 | GDX-06 | P0 | Host smoke test pass (manual) | Repo standards require DAW verification before release | Smoke checks recorded for at least Ableton Live, REAPER, Bitwig, and one additional host: insert/open GUI, automate 3+ params, save/reload, repeated open/close, resize/HiDPI |
-| GDX-07 | P1 | Fill plugin metadata/support links | `URL`, `EMAIL`, manual/support URLs are empty/None | Metadata fields set to valid values intended for release builds |
+| ~~GDX-07~~ | ~~P1~~ | ~~Fill plugin metadata/support links~~ | ~~Done~~ | ~~Done~~ |
 | ~~GDX-08~~ | ~~P1~~ | ~~Clean non-critical warnings~~ | ~~Done~~ | ~~Done~~ |
 
 ## Blocked / Questions
@@ -40,10 +42,7 @@ Source snapshot: `plugins/genx_delay/src/lib.rs` + `plugins/genx_delay/src/edito
 - Confirm target host matrix (minimum 4th host choice): Logic via CLAP wrapper is out; likely FL Studio or Studio One.
 
 ## Suggested Execution Order
-1. GDX-00
-2. GDX-02
-3. GDX-03
-4. GDX-09
-5. GDX-06
-6. GDX-07
-7. GDX-04 (or defer based on scope)
+1. GDX-09
+2. GDX-06
+3. GDX-07
+4. GDX-04 (or defer based on scope)

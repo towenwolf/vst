@@ -190,7 +190,6 @@ pub(crate) const GUI_NOTE_DIVISION_OPTIONS: &[(NoteDivision, &str)] = &[
     (NoteDivision::SixteenthTriplet, "1/16t"),
 ];
 
-#[cfg(test)]
 #[inline]
 pub(crate) fn modulation_controls_enabled(mode: DelayMode) -> bool {
     mode == DelayMode::Analog
@@ -222,6 +221,8 @@ pub fn create(
         move |egui_ctx, setter, _state| {
             let scale = content_scale(&state_for_resize);
             apply_theme(egui_ctx, scale);
+            let current_mode = params.mode.value();
+            let modulation_enabled = modulation_controls_enabled(current_mode);
 
             ResizableWindow::new("genx_delay")
                 .min_size([600.0, 420.0])
@@ -375,45 +376,52 @@ pub fn create(
 
                         // MODULATION section
                         cols[1].group(|ui| {
-                            section_label(ui, "MODULATION", RUST, scale);
+                            let modulation_label_color = if modulation_enabled {
+                                RUST
+                            } else {
+                                RUST.gamma_multiply(0.55)
+                            };
+                            section_label(ui, "MODULATION", modulation_label_color, scale);
                             ui.label(
                                 egui::RichText::new("(Analog only)")
                                     .small()
-                                    .color(RUST),
+                                    .color(modulation_label_color),
                             );
 
-                            ui.add_space(4.0 * scale);
-                            let mut rate_value = params.mod_rate.value();
-                            handle_slider_param(
-                                ui,
-                                setter,
-                                &params.mod_rate,
-                                &mut rate_value,
-                                "Rate (Hz)",
-                                0.1..=5.0,
-                            );
+                            ui.add_enabled_ui(modulation_enabled, |ui| {
+                                ui.add_space(4.0 * scale);
+                                let mut rate_value = params.mod_rate.value();
+                                handle_slider_param(
+                                    ui,
+                                    setter,
+                                    &params.mod_rate,
+                                    &mut rate_value,
+                                    "Rate (Hz)",
+                                    0.1..=5.0,
+                                );
 
-                            ui.add_space(4.0 * scale);
-                            let mut depth_value = params.mod_depth.value();
-                            handle_slider_param(
-                                ui,
-                                setter,
-                                &params.mod_depth,
-                                &mut depth_value,
-                                "Depth",
-                                0.0..=1.0,
-                            );
+                                ui.add_space(4.0 * scale);
+                                let mut depth_value = params.mod_depth.value();
+                                handle_slider_param(
+                                    ui,
+                                    setter,
+                                    &params.mod_depth,
+                                    &mut depth_value,
+                                    "Depth",
+                                    0.0..=1.0,
+                                );
 
-                            ui.add_space(4.0 * scale);
-                            let mut drive_value = params.drive.value();
-                            handle_slider_param(
-                                ui,
-                                setter,
-                                &params.drive,
-                                &mut drive_value,
-                                "Drive",
-                                0.0..=1.0,
-                            );
+                                ui.add_space(4.0 * scale);
+                                let mut drive_value = params.drive.value();
+                                handle_slider_param(
+                                    ui,
+                                    setter,
+                                    &params.drive,
+                                    &mut drive_value,
+                                    "Drive",
+                                    0.0..=1.0,
+                                );
+                            });
                         });
 
                         // DUCK section

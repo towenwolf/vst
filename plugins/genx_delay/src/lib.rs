@@ -364,8 +364,8 @@ impl Default for GenXDelay {
 impl Plugin for GenXDelay {
     const NAME: &'static str = "GenX Delay";
     const VENDOR: &'static str = "trwolf";
-    const URL: &'static str = "";
-    const EMAIL: &'static str = "";
+    const URL: &'static str = "https://github.com/towenwolf/vst";
+    const EMAIL: &'static str = "towenwolf@users.noreply.github.com";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
     const AUDIO_IO_LAYOUTS: &'static [AudioIOLayout] = &[
@@ -616,8 +616,10 @@ impl ClapPlugin for GenXDelay {
     const CLAP_ID: &'static str = "com.trwolf.genx-delay";
     const CLAP_DESCRIPTION: Option<&'static str> =
         Some("Delay emulating 00s alternative/rock tones");
-    const CLAP_MANUAL_URL: Option<&'static str> = None;
-    const CLAP_SUPPORT_URL: Option<&'static str> = None;
+    const CLAP_MANUAL_URL: Option<&'static str> =
+        Some("https://github.com/towenwolf/vst/tree/main/plugins/genx_delay");
+    const CLAP_SUPPORT_URL: Option<&'static str> =
+        Some("https://github.com/towenwolf/vst/issues");
     const CLAP_FEATURES: &'static [ClapFeature] = &[
         ClapFeature::AudioEffect,
         ClapFeature::Delay,
@@ -1349,7 +1351,6 @@ mod gui_usability_tests {
     }
 
     #[test]
-    #[ignore = "GDX-07 gate: enable after release metadata URLs/emails are finalized"]
     fn gdx_07_release_metadata_is_filled() {
         assert!(!GenXDelay::URL.is_empty(), "Plugin URL must be set for release");
         assert!(!GenXDelay::EMAIL.is_empty(), "Plugin support email must be set for release");

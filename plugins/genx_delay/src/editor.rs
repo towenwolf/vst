@@ -292,10 +292,10 @@ fn section_label(ui: &mut egui::Ui, text: &str, color: egui::Color32, scale: f32
             .strong()
             .color(color),
     );
-    draw_section_accent(ui, color, scale);
     ui.add_space(4.0 * scale);
 }
 
+#[allow(dead_code)]
 fn draw_section_accent(ui: &mut egui::Ui, color: egui::Color32, scale: f32) {
     let metrics = section_accent_metrics(scale);
     let width = ui.available_width().max(40.0 * scale);
@@ -1136,9 +1136,6 @@ pub fn create(
             setup_custom_fonts(egui_ctx);
         },
         move |egui_ctx, setter, _state| {
-            let viewport_size = egui_ctx.screen_rect().size();
-            let initial_scale = content_scale_from_dimensions(viewport_size.x, viewport_size.y);
-            apply_theme(egui_ctx, initial_scale);
             let current_mode = params.mode.value();
             let modulation_enabled = modulation_controls_enabled(current_mode);
 

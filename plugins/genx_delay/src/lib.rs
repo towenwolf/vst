@@ -1215,28 +1215,29 @@ mod gui_usability_tests {
         );
 
         assert!(
-            tiny.barbed_wire_margin <= base.barbed_wire_margin
-                && base.barbed_wire_margin < large.barbed_wire_margin,
-            "barbed-wire margins should stay stable at small sizes and increase above base scale"
+            tiny.vine_border_margin <= base.vine_border_margin
+                && base.vine_border_margin < large.vine_border_margin,
+            "vine-border margins should stay stable at small sizes and increase above base scale"
         );
         assert!(
-            tiny.tribal_margin < base.tribal_margin && base.tribal_margin < large.tribal_margin,
-            "tribal corner margins should scale with content size"
+            tiny.flower_corner_margin < base.flower_corner_margin
+                && base.flower_corner_margin < large.flower_corner_margin,
+            "flower-corner margins should scale with content size"
         );
         assert!(
-            tiny.tribal_outer_stroke < base.tribal_outer_stroke
-                && base.tribal_outer_stroke < large.tribal_outer_stroke,
-            "tribal outer stroke must scale with content size"
+            tiny.flower_outer_stroke < base.flower_outer_stroke
+                && base.flower_outer_stroke < large.flower_outer_stroke,
+            "flower outer stroke must scale with content size"
         );
         assert!(
-            tiny.tribal_inner_stroke < base.tribal_inner_stroke
-                && base.tribal_inner_stroke < large.tribal_inner_stroke,
-            "tribal inner stroke must scale with content size"
+            tiny.flower_inner_stroke < base.flower_inner_stroke
+                && base.flower_inner_stroke < large.flower_inner_stroke,
+            "flower inner stroke must scale with content size"
         );
         assert!(
-            tiny.rust_stamp_outer_stroke < base.rust_stamp_outer_stroke
-                && base.rust_stamp_outer_stroke < large.rust_stamp_outer_stroke,
-            "rust stamp stroke must scale with content size"
+            tiny.peace_symbol_stroke < base.peace_symbol_stroke
+                && base.peace_symbol_stroke < large.peace_symbol_stroke,
+            "peace symbol stroke must scale with content size"
         );
     }
 
@@ -1307,13 +1308,13 @@ mod gui_usability_tests {
         let deco_large = editor::woodstock_decoration_metrics(1.8);
 
         assert!(
-            deco_base.wire_spacing > 0.0,
-            "barbed-wire separator spacing must remain positive"
+            deco_base.vine_spacing > 0.0,
+            "vine-border spacing must remain positive"
         );
         assert!(
-            deco_small.wire_spacing < deco_base.wire_spacing
-                && deco_base.wire_spacing < deco_large.wire_spacing,
-            "barbed-wire spacing should scale monotonically with window scale"
+            deco_small.vine_spacing < deco_base.vine_spacing
+                && deco_base.vine_spacing < deco_large.vine_spacing,
+            "vine-border spacing should scale monotonically with window scale"
         );
 
         let accent_small = editor::section_accent_metrics(0.5);
@@ -1466,11 +1467,11 @@ mod gui_usability_tests {
         let large = editor::woodstock_decoration_metrics(1.8);
 
         for (name, opacity) in [
-            ("barbed_wire", base.barbed_wire_opacity),
-            ("tribal", base.tribal_opacity),
+            ("vine_border", base.vine_border_opacity),
+            ("flower_corner", base.flower_corner_opacity),
             ("dove", base.dove_opacity),
-            ("speckle", base.speckle_opacity),
-            ("rust_stamp", base.rust_stamp_opacity),
+            ("starfield", base.starfield_opacity),
+            ("peace_symbol", base.peace_symbol_opacity),
         ] {
             assert!(
                 (0.06..=0.18).contains(&opacity),
@@ -1479,12 +1480,12 @@ mod gui_usability_tests {
         }
 
         assert!(
-            small.wire_spacing < base.wire_spacing && base.wire_spacing < large.wire_spacing,
-            "barbed-wire spacing should scale with GUI size"
+            small.vine_spacing < base.vine_spacing && base.vine_spacing < large.vine_spacing,
+            "vine-border spacing should scale with GUI size"
         );
         assert!(
             small.corner_extent < base.corner_extent && base.corner_extent < large.corner_extent,
-            "tribal-corner extents should scale with GUI size"
+            "flower-corner extents should scale with GUI size"
         );
         assert!(
             small.dove_size < base.dove_size && base.dove_size < large.dove_size,

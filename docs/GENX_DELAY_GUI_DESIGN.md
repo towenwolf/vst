@@ -4,18 +4,18 @@
 
 The GenX Delay is a VST3/CLAP delay plugin emulating the warm, atmospheric delay sounds popular in late 90s/00s alternative rock — specifically inspired by **Incubus** and the **Line 6 DL4** era.
 
-The GUI theme is **Woodstock 99** — the iconic (and infamous) festival where Incubus performed. The visual aesthetic captures the dusty, sun-bleached festival atmosphere with late-90s design elements.
+The GUI theme is **Woodstock 99** with a visual aesthetic inspired by the **original 1969 Woodstock poster** by Arnold Skolnick — deep crimson red background, white/cream graphics, dove-on-guitar iconography, organic flowing shapes, and the spirit of peace, love, and music.
 
 ---
 
 ## Design Direction
 
 ### Style Keywords
-- **Subdued/dusty** — sun-bleached posters, worn asphalt, desert heat
-- **Clean with grunge accents** — modern layout with era-appropriate touches
-- **Minimal/flat controls** — simple arc-style knobs with 90s graphic design
-- **Dove motif** — Woodstock's iconic peace dove symbol
-- **Barbed wire & tribal tattoos** — the edgier, industrial side of the era
+- **Bold crimson** — the iconic poster red, commanding and warm
+- **Clean with organic accents** — modern layout with 1960s counterculture touches
+- **Minimal/flat controls** — simple slider-based controls with cream-on-red contrast
+- **Dove-on-guitar motif** — the iconic 1969 Woodstock dove perched on a guitar neck
+- **Peace symbols & vine borders** — organic, flowing, nature-inspired decoration
 
 ---
 
@@ -23,15 +23,17 @@ The GUI theme is **Woodstock 99** — the iconic (and infamous) festival where I
 
 | Name | Hex | RGB | Usage |
 |------|-----|-----|-------|
-| **BG Main** | `#EBE4D7` | `235, 228, 215` | Main background — dusty off-white/cream |
-| **BG Panel** | `#D7CDBE` | `215, 205, 190` | Panel backgrounds — darker cream |
-| **Accent Warm** | `#B45F41` | `180, 95, 65` | Terracotta — Time controls, active toggles |
-| **Accent Olive** | `#697350` | `105, 115, 80` | Dusty olive — Main/Feedback controls |
-| **Accent Navy** | `#3C465A` | `60, 70, 90` | Worn denim — Stereo controls |
-| **Text Dark** | `#2D2823` | `45, 40, 35` | Charcoal — primary text, outlines |
-| **Tribal Brown** | `#4B3728` | `75, 55, 40` | Faded brown — tribal elements, borders |
-| **Rust** | `#8C4B32` | `140, 75, 50` | Rust — barbed wire, modulation section |
-| **Dove Gold** | `#AF9B64` | `175, 155, 100` | Muted gold — dove accent, ducking section |
+| **BG Crimson** | `#B71C1C` | `183, 28, 28` | Main background — deep poster red |
+| **BG Panel Dark** | `#991717` | `153, 23, 23` | Panel group backgrounds — darker crimson |
+| **Text Cream** | `#FFF8EB` | `255, 248, 235` | Primary text — warm cream white |
+| **Poster White** | `#F0EBE1` | `240, 235, 225` | Decorative lines, borders, subtitle text |
+| **Accent Coral** | `#FFA782` | `255, 167, 130` | TIME section accent |
+| **Accent Sage** | `#B4D2A0` | `180, 210, 160` | MAIN section, slider selection, active widgets |
+| **Accent Sky** | `#A0C3E6` | `160, 195, 230` | STEREO section accent |
+| **Accent Amber** | `#FFC878` | `255, 200, 120` | MODULATION section accent |
+| **Dove White** | `#FFFCF5` | `255, 252, 245` | Dove motif, DUCK section accent |
+| **Accent Tone** | `#DCBEAA` | `220, 190, 170` | TONE section accent |
+| **Highlight Gold** | `#FFD78C` | `255, 215, 140` | Hover/active widget highlight |
 
 ---
 
@@ -47,7 +49,7 @@ The GUI theme is **Woodstock 99** — the iconic (and infamous) festival where I
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  ════════════════ BARBED WIRE ════════════════      🕊️ (dove)   │
+│  ~~~~~~~~~~~~~ VINE BORDER ~~~~~~~~~~~~~~  🕊️🎸 (dove/guitar)  │
 │                                                                 │
 │                        GENX DELAY                               │
 │                     — WOODSTOCK 99 —                            │
@@ -67,111 +69,122 @@ The GUI theme is **Woodstock 99** — the iconic (and infamous) festival where I
 │  │ [HP]  [LP]  │  │ [RATE][DEPTH][DRV]│  │  [AMT] [THRESH] │   │
 │  └─────────────┘  └───────────────────┘  └─────────────────┘   │
 │                                                                 │
-│  ════════════════ BARBED WIRE ════════════════                  │
+│  ☮ (peace)   ~~~~~~~~~~~~~ VINE BORDER ~~~~~~~~~~~~~~          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Sections
 
 1. **TIME** (left column)
-   - Delay knob (terracotta accent)
-   - Sync toggle button
+   - Delay slider (coral accent)
+   - Reverse checkbox
+   - Sync checkbox
    - Note Division selector (when synced)
 
 2. **MAIN** (center column)
-   - Feedback knob (olive accent)
-   - Mix knob (olive accent)
+   - Feedback slider (sage accent)
+   - Mix slider (sage accent)
    - Mode selector: Digital | Analog
 
 3. **STEREO** (right column)
-   - Ping Pong toggle
-   - Stereo Offset knob (navy accent)
+   - Ping Pong checkbox
+   - Stereo Offset slider (sky accent)
 
 4. **TONE** (bottom left)
-   - High-Pass knob (tribal brown)
-   - Low-Pass knob (tribal brown)
+   - High-Pass slider (tone beige accent)
+   - Low-Pass slider (tone beige accent)
 
 5. **MODULATION** (bottom center)
-   - Rate knob (rust accent)
-   - Depth knob (rust accent)
-   - Drive knob (rust accent)
-   - *Grayed out when in Digital mode*
+   - Rate slider (amber accent)
+   - Depth slider (amber accent)
+   - Drive slider (amber accent)
+   - *Visually muted when in Digital mode*
 
 6. **DUCK** (bottom right)
-   - Amount knob (dove gold)
-   - Threshold knob (dove gold)
+   - Amount slider (dove white)
+   - Threshold slider (dove white)
 
 ---
 
 ## Visual Elements
 
-### Barbed Wire Border
-- Horizontal lines at top and bottom of the window
-- Rust-colored (`#8C4B32`)
-- Small X-shaped barbs every ~25px with circular wraps
-- Provides the industrial/aggressive festival edge
+### Vine Border
+- Organic, undulating vine lines at top and bottom of the window
+- Poster white color with low opacity
+- Small leaf shapes at regular intervals along the vine
+- Sine-wave stem with leaf veins for organic feel
 
-### Tribal Corner Decorations
-- Angular, swooping lines in each corner
-- Inspired by late-90s tribal tattoo aesthetics
-- Tribal brown color (`#4B3728`)
-- Inner accent lines at 60% opacity for depth
+### Flower Corner Decorations
+- Organic flower clusters in each corner
+- Curved stem from corner with S-curve shape
+- 5-petal flower at stem end with filled center
+- Small buds along the stem
+- Poster white color at low opacity
 
-### Peace Dove
+### Dove on Guitar
 - Positioned top-right area
-- Simplified, iconic Woodstock dove silhouette
-- Dove gold color (`#AF9B64`)
-- Includes small olive branch with leaves
-- Wing curves suggesting flight
+- Iconic 1969 Woodstock poster silhouette: dove perched on guitar neck
+- Horizontal guitar neck with fret lines and headstock
+- Dove body, raised wing, head, beak, tail feathers
+- Dove white color at low opacity
+
+### Peace Symbol
+- Positioned bottom-left area
+- Classic peace sign: circle with internal lines
+- Poster white color at low opacity
+
+### Starfield
+- Scattered stars and dots across the background
+- Mix of tiny dot-stars (75%) and 4-pointed cross-stars (25%)
+- Cosmic festival night sky feel
+- Deterministic placement via hash function
 
 ---
 
 ## Control Styles
 
-### Knobs
-- **Style:** Minimal arc-based
-- **Size:** 55px diameter
-- **Track:** 270° arc (from 7 o'clock to 5 o'clock)
-- **Indicator:** Line from center to current position
-- **Center dot:** 6px filled circle
-- **Interaction:** Vertical drag, double-click to reset
-- **Labels:** 9pt text below knob, value above
+### Sliders
+- **Style:** Horizontal slider with value display
+- **Track width:** 100px (scales with window)
+- **Labels:** Parameter name and value displayed above slider
+- **Interaction:** Horizontal drag, host-safe gestures
 
-### Toggle Buttons
-- **Size:** 70×22px
-- **Style:** Rounded rectangle (3px radius)
-- **Off state:** Panel background with brown border
-- **On state:** Accent color fill with light text
-- **Text:** 10pt centered
+### Checkboxes
+- **Style:** Standard egui checkbox with label
+- **Text:** Cream colored on crimson background
 
-### Enum Selectors
+### Enum Selectors (Buttons)
 - **Style:** Horizontal button group
-- **Button size:** 55×20px each
-- **Selected:** Olive fill with light text
-- **Unselected:** Panel background with brown border
+- **Selected:** Sage green fill with crimson text
+- **Unselected:** Dark crimson panel with cream text
+- **Hover:** Gold highlight
+
+### Enum Selectors (Dropdown)
+- **Style:** ComboBox dropdown
+- **Selected text:** Cream colored
 
 ---
 
 ## Typography
 
-- **Title:** 32pt proportional, bold, charcoal
-- **Subtitle:** 11pt proportional, tribal brown
-- **Section labels:** 10pt proportional, charcoal
-- **Knob labels:** 9pt proportional
-- **Values:** 9pt proportional
+- **Title:** 24pt proportional, cream white
+- **Subtitle:** 9pt proportional, poster white
+- **Section labels:** 9pt proportional, strong, section accent color
+- **Slider labels:** 9pt proportional, cream
+- **Values:** 9pt monospace, poster white
 
 ---
 
 ## Interaction States
 
 ### Enabled Controls
-- Full color
+- Full color (cream text, accent-colored labels)
 - Responsive to drag/click
-- Cursor changes on hover (if supported)
+- Gold highlight on hover
 
 ### Disabled Controls (Modulation in Digital mode)
-- Muted/grayed colors (`#969187` range)
-- Non-interactive
+- Muted amber at 45% opacity for label
+- Non-interactive via `add_enabled_ui(false, ...)`
 - Visual indication that feature is mode-dependent
 
 ---
@@ -180,8 +193,9 @@ The GUI theme is **Woodstock 99** — the iconic (and infamous) festival where I
 
 - Built with **nih_plug_egui** (egui GUI framework for nih-plug)
 - Custom painting using egui's Painter API
-- Window size: 600×420 via `EguiState::from_size()`
+- Window size: 600x420 via `EguiState::from_size()`
 - All decorative elements drawn procedurally (no image assets)
+- Theme starts from `Visuals::dark()` base for crimson background
 
 ### Key Files
 - `plugins/genx_delay/src/editor.rs` — GUI implementation
@@ -196,8 +210,7 @@ nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug.git" }
 
 ## Future Enhancements
 
-- [ ] Add subtle texture overlay for more authentic dusty feel
+- [ ] Add subtle texture overlay for vintage poster feel
 - [ ] Animated dove wing flutter on audio input
 - [ ] VU meter or delay time visualization
 - [ ] Preset system with era-appropriate names
-- [ ] Dark mode variant (night stage lighting aesthetic)

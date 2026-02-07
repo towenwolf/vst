@@ -618,8 +618,7 @@ impl ClapPlugin for GenXDelay {
         Some("Delay emulating 00s alternative/rock tones");
     const CLAP_MANUAL_URL: Option<&'static str> =
         Some("https://github.com/towenwolf/vst/tree/main/plugins/genx_delay");
-    const CLAP_SUPPORT_URL: Option<&'static str> =
-        Some("https://github.com/towenwolf/vst/issues");
+    const CLAP_SUPPORT_URL: Option<&'static str> = Some("https://github.com/towenwolf/vst/issues");
     const CLAP_FEATURES: &'static [ClapFeature] = &[
         ClapFeature::AudioEffect,
         ClapFeature::Delay,
@@ -1352,8 +1351,14 @@ mod gui_usability_tests {
 
     #[test]
     fn gdx_07_release_metadata_is_filled() {
-        assert!(!GenXDelay::URL.is_empty(), "Plugin URL must be set for release");
-        assert!(!GenXDelay::EMAIL.is_empty(), "Plugin support email must be set for release");
+        assert!(
+            !GenXDelay::URL.is_empty(),
+            "Plugin URL must be set for release"
+        );
+        assert!(
+            !GenXDelay::EMAIL.is_empty(),
+            "Plugin support email must be set for release"
+        );
         assert!(
             GenXDelay::CLAP_MANUAL_URL.is_some(),
             "CLAP manual URL should be present for release support"
@@ -1370,5 +1375,38 @@ mod gui_usability_tests {
         // CI/command gate:
         // cargo clippy -p genx_delay --all-targets -- -D warnings
         panic!("Warning-clean gate for GDX-08");
+    }
+
+    #[test]
+    fn gdx_09_woodstock_icon_motif_contract() {
+        let small = editor::woodstock_decoration_metrics(0.5);
+        let base = editor::woodstock_decoration_metrics(1.0);
+        let large = editor::woodstock_decoration_metrics(1.8);
+
+        for (name, opacity) in [
+            ("barbed_wire", base.barbed_wire_opacity),
+            ("tribal", base.tribal_opacity),
+            ("dove", base.dove_opacity),
+            ("speckle", base.speckle_opacity),
+            ("rust_stamp", base.rust_stamp_opacity),
+        ] {
+            assert!(
+                (0.06..=0.18).contains(&opacity),
+                "{name} opacity {opacity:.3} must remain in low-opacity decorative range"
+            );
+        }
+
+        assert!(
+            small.wire_spacing < base.wire_spacing && base.wire_spacing < large.wire_spacing,
+            "barbed-wire spacing should scale with GUI size"
+        );
+        assert!(
+            small.corner_extent < base.corner_extent && base.corner_extent < large.corner_extent,
+            "tribal-corner extents should scale with GUI size"
+        );
+        assert!(
+            small.dove_size < base.dove_size && base.dove_size < large.dove_size,
+            "dove motif size should scale with GUI size"
+        );
     }
 }

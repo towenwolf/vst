@@ -22,6 +22,33 @@ const ACCENT_NAVY: egui::Color32 = egui::Color32::from_rgb(60, 70, 90);
 const RUST: egui::Color32 = egui::Color32::from_rgb(140, 75, 50);
 const DOVE_GOLD: egui::Color32 = egui::Color32::from_rgb(175, 155, 100);
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct WoodstockDecorationMetrics {
+    pub(crate) barbed_wire_opacity: f32,
+    pub(crate) tribal_opacity: f32,
+    pub(crate) dove_opacity: f32,
+    pub(crate) speckle_opacity: f32,
+    pub(crate) rust_stamp_opacity: f32,
+    pub(crate) wire_spacing: f32,
+    pub(crate) corner_extent: f32,
+    pub(crate) dove_size: f32,
+}
+
+pub(crate) fn woodstock_decoration_metrics(scale: f32) -> WoodstockDecorationMetrics {
+    let clamped_scale = scale.clamp(0.5, 2.0);
+    WoodstockDecorationMetrics {
+        // Keep decorative overlays subtle per icon-pack guidance (6%..18%).
+        barbed_wire_opacity: (0.13 + 0.02 * clamped_scale).clamp(0.06, 0.18),
+        tribal_opacity: (0.10 + 0.02 * clamped_scale).clamp(0.06, 0.18),
+        dove_opacity: (0.12 + 0.015 * clamped_scale).clamp(0.06, 0.18),
+        speckle_opacity: (0.055 + 0.01 * clamped_scale).clamp(0.06, 0.12),
+        rust_stamp_opacity: (0.09 + 0.02 * clamped_scale).clamp(0.06, 0.18),
+        wire_spacing: 24.0 * clamped_scale,
+        corner_extent: 34.0 * clamped_scale,
+        dove_size: 28.0 * clamped_scale,
+    }
+}
+
 pub fn default_state() -> Arc<EguiState> {
     EguiState::from_size(WINDOW_WIDTH, WINDOW_HEIGHT)
 }
@@ -61,21 +88,26 @@ fn apply_theme(ctx: &egui::Context, scale: f32) {
 
     // Font sizes — scale proportionally with window
     let mut style = (*ctx.style()).clone();
-    style
-        .text_styles
-        .insert(egui::TextStyle::Heading, egui::FontId::proportional(24.0 * scale));
-    style
-        .text_styles
-        .insert(egui::TextStyle::Body, egui::FontId::proportional(11.0 * scale));
-    style
-        .text_styles
-        .insert(egui::TextStyle::Button, egui::FontId::proportional(11.0 * scale));
-    style
-        .text_styles
-        .insert(egui::TextStyle::Monospace, egui::FontId::monospace(11.0 * scale));
-    style
-        .text_styles
-        .insert(egui::TextStyle::Small, egui::FontId::proportional(9.0 * scale));
+    style.text_styles.insert(
+        egui::TextStyle::Heading,
+        egui::FontId::proportional(24.0 * scale),
+    );
+    style.text_styles.insert(
+        egui::TextStyle::Body,
+        egui::FontId::proportional(11.0 * scale),
+    );
+    style.text_styles.insert(
+        egui::TextStyle::Button,
+        egui::FontId::proportional(11.0 * scale),
+    );
+    style.text_styles.insert(
+        egui::TextStyle::Monospace,
+        egui::FontId::monospace(11.0 * scale),
+    );
+    style.text_styles.insert(
+        egui::TextStyle::Small,
+        egui::FontId::proportional(9.0 * scale),
+    );
 
     // Widget sizing — scale interaction targets and spacing
     style.spacing.interact_size = egui::vec2(40.0 * scale, 18.0 * scale);
@@ -173,6 +205,269 @@ fn section_label(ui: &mut egui::Ui, text: &str, color: egui::Color32, scale: f32
     ui.add_space(4.0 * scale);
 }
 
+fn draw_woodstock_decorations(ui: &egui::Ui, rect: egui::Rect, scale: f32) {
+    let painter = ui.painter();
+    let metrics = woodstock_decoration_metrics(scale);
+
+    draw_barbed_wire_line(
+        painter,
+        rect,
+        rect.top() + 13.0 * scale,
+        metrics.wire_spacing,
+        RUST.gamma_multiply(metrics.barbed_wire_opacity),
+        1.0 * scale,
+    );
+    draw_barbed_wire_line(
+        painter,
+        rect,
+        rect.bottom() - 12.0 * scale,
+        metrics.wire_spacing,
+        RUST.gamma_multiply(metrics.barbed_wire_opacity),
+        1.0 * scale,
+    );
+
+    draw_tribal_corner(
+        painter,
+        rect,
+        egui::Align2::LEFT_TOP,
+        metrics.corner_extent,
+        TRIBAL_BROWN.gamma_multiply(metrics.tribal_opacity),
+    );
+    draw_tribal_corner(
+        painter,
+        rect,
+        egui::Align2::RIGHT_TOP,
+        metrics.corner_extent,
+        TRIBAL_BROWN.gamma_multiply(metrics.tribal_opacity),
+    );
+    draw_tribal_corner(
+        painter,
+        rect,
+        egui::Align2::LEFT_BOTTOM,
+        metrics.corner_extent,
+        TRIBAL_BROWN.gamma_multiply(metrics.tribal_opacity),
+    );
+    draw_tribal_corner(
+        painter,
+        rect,
+        egui::Align2::RIGHT_BOTTOM,
+        metrics.corner_extent,
+        TRIBAL_BROWN.gamma_multiply(metrics.tribal_opacity),
+    );
+
+    let dove_pos = egui::pos2(
+        rect.right() - metrics.dove_size - (16.0 * scale),
+        rect.top() + (18.0 * scale),
+    );
+    draw_dove_mark(
+        painter,
+        dove_pos,
+        metrics.dove_size,
+        DOVE_GOLD.gamma_multiply(metrics.dove_opacity),
+    );
+
+    let stamp_center = egui::pos2(rect.left() + (28.0 * scale), rect.bottom() - (30.0 * scale));
+    draw_rust_stamp(
+        painter,
+        stamp_center,
+        12.0 * scale,
+        RUST.gamma_multiply(metrics.rust_stamp_opacity),
+    );
+
+    draw_grunge_speckles(
+        painter,
+        rect.shrink(8.0 * scale),
+        0.9 * scale,
+        TEXT_DARK.gamma_multiply(metrics.speckle_opacity),
+    );
+}
+
+fn draw_barbed_wire_line(
+    painter: &egui::Painter,
+    rect: egui::Rect,
+    y: f32,
+    spacing: f32,
+    color: egui::Color32,
+    stroke_width: f32,
+) {
+    let stroke = egui::Stroke::new(stroke_width, color);
+    let start_x = rect.left() + 14.0;
+    let end_x = rect.right() - 14.0;
+    painter.line_segment([egui::pos2(start_x, y), egui::pos2(end_x, y)], stroke);
+
+    let mut x = start_x + spacing * 0.5;
+    while x < end_x - spacing * 0.5 {
+        let barb = 3.2 * stroke_width.max(1.0);
+        painter.line_segment(
+            [
+                egui::pos2(x - barb, y - barb),
+                egui::pos2(x + barb, y + barb),
+            ],
+            stroke,
+        );
+        painter.line_segment(
+            [
+                egui::pos2(x - barb, y + barb),
+                egui::pos2(x + barb, y - barb),
+            ],
+            stroke,
+        );
+        painter.circle_stroke(
+            egui::pos2(x - 4.2 * stroke_width, y),
+            1.4 * stroke_width,
+            stroke,
+        );
+        painter.circle_stroke(
+            egui::pos2(x + 4.2 * stroke_width, y),
+            1.4 * stroke_width,
+            stroke,
+        );
+        x += spacing;
+    }
+}
+
+fn draw_tribal_corner(
+    painter: &egui::Painter,
+    rect: egui::Rect,
+    corner: egui::Align2,
+    extent: f32,
+    color: egui::Color32,
+) {
+    let margin = 6.0;
+    let (anchor, sx, sy) = match corner {
+        egui::Align2::LEFT_TOP => (
+            egui::pos2(rect.left() + margin, rect.top() + margin),
+            1.0,
+            1.0,
+        ),
+        egui::Align2::RIGHT_TOP => (
+            egui::pos2(rect.right() - margin, rect.top() + margin),
+            -1.0,
+            1.0,
+        ),
+        egui::Align2::LEFT_BOTTOM => (
+            egui::pos2(rect.left() + margin, rect.bottom() - margin),
+            1.0,
+            -1.0,
+        ),
+        egui::Align2::RIGHT_BOTTOM => (
+            egui::pos2(rect.right() - margin, rect.bottom() - margin),
+            -1.0,
+            -1.0,
+        ),
+        _ => return,
+    };
+
+    let map_point = |x: f32, y: f32| egui::pos2(anchor.x + sx * x, anchor.y + sy * y);
+    let outer = vec![
+        map_point(0.0, 0.0),
+        map_point(extent * 0.32, extent * 0.06),
+        map_point(extent * 0.56, extent * 0.24),
+        map_point(extent * 0.76, extent * 0.50),
+    ];
+    let inner = vec![
+        map_point(extent * 0.09, extent * 0.16),
+        map_point(extent * 0.32, extent * 0.24),
+        map_point(extent * 0.50, extent * 0.41),
+    ];
+
+    painter.add(egui::Shape::line(outer, egui::Stroke::new(1.6, color)));
+    painter.add(egui::Shape::line(
+        inner,
+        egui::Stroke::new(1.0, color.gamma_multiply(0.75)),
+    ));
+}
+
+fn draw_dove_mark(painter: &egui::Painter, top_left: egui::Pos2, size: f32, color: egui::Color32) {
+    let point = |x: f32, y: f32| egui::pos2(top_left.x + x * size, top_left.y + y * size);
+
+    let wing = vec![
+        point(0.02, 0.44),
+        point(0.34, 0.02),
+        point(0.72, 0.22),
+        point(0.46, 0.56),
+    ];
+    let body = vec![
+        point(0.30, 0.48),
+        point(0.58, 0.30),
+        point(0.88, 0.46),
+        point(0.54, 0.80),
+        point(0.24, 0.72),
+    ];
+    let beak = vec![point(0.86, 0.44), point(0.98, 0.39), point(0.89, 0.52)];
+
+    painter.add(egui::Shape::convex_polygon(wing, color, egui::Stroke::NONE));
+    painter.add(egui::Shape::convex_polygon(
+        body,
+        color.gamma_multiply(0.95),
+        egui::Stroke::NONE,
+    ));
+    painter.add(egui::Shape::convex_polygon(
+        beak,
+        ACCENT_OLIVE.gamma_multiply(0.3),
+        egui::Stroke::NONE,
+    ));
+
+    let branch_stroke =
+        egui::Stroke::new((size * 0.05).max(0.8), ACCENT_OLIVE.gamma_multiply(0.25));
+    painter.line_segment([point(0.66, 0.74), point(1.05, 0.90)], branch_stroke);
+    painter.line_segment([point(0.80, 0.80), point(0.88, 0.70)], branch_stroke);
+    painter.line_segment([point(0.91, 0.86), point(0.98, 0.77)], branch_stroke);
+}
+
+fn draw_rust_stamp(painter: &egui::Painter, center: egui::Pos2, radius: f32, color: egui::Color32) {
+    let stroke = egui::Stroke::new(1.1, color);
+    painter.circle_stroke(center, radius, stroke);
+    painter.circle_stroke(
+        center,
+        radius * 0.66,
+        egui::Stroke::new(0.9, color.gamma_multiply(0.8)),
+    );
+    painter.line_segment(
+        [
+            egui::pos2(center.x - radius * 0.44, center.y - radius * 0.2),
+            egui::pos2(center.x + radius * 0.5, center.y + radius * 0.3),
+        ],
+        egui::Stroke::new(0.9, color.gamma_multiply(0.75)),
+    );
+}
+
+fn draw_grunge_speckles(
+    painter: &egui::Painter,
+    rect: egui::Rect,
+    scale: f32,
+    color: egui::Color32,
+) {
+    let area = rect.width() * rect.height();
+    let count = ((area / 2500.0).round() as usize).clamp(60, 170);
+    for i in 0..count {
+        let seed = (i as u32)
+            .wrapping_mul(747_796_405)
+            .wrapping_add(2_891_336_453);
+        let x_hash = mix_u32(seed);
+        let y_hash = mix_u32(seed.wrapping_add(0x9E37_79B9));
+        let r_hash = mix_u32(seed.wrapping_add(0x85EB_CA6B));
+
+        let fx = x_hash as f32 / u32::MAX as f32;
+        let fy = y_hash as f32 / u32::MAX as f32;
+        let radius = (0.35 + ((r_hash & 0xff) as f32 / 255.0) * 1.2) * scale;
+        let point = egui::pos2(
+            rect.left() + fx * rect.width(),
+            rect.top() + fy * rect.height(),
+        );
+        painter.circle_filled(point, radius, color);
+    }
+}
+
+#[inline]
+fn mix_u32(mut x: u32) -> u32 {
+    x ^= x >> 16;
+    x = x.wrapping_mul(0x7FEB_352D);
+    x ^= x >> 15;
+    x = x.wrapping_mul(0x846C_A68B);
+    x ^ (x >> 16)
+}
+
 #[cfg(test)]
 pub(crate) const GUI_NOTE_DIVISION_OPTIONS: &[(NoteDivision, &str)] = &[
     (NoteDivision::Whole, "1/1"),
@@ -227,6 +522,9 @@ pub fn create(
             ResizableWindow::new("genx_delay")
                 .min_size([600.0, 420.0])
                 .show(egui_ctx, &state_for_resize, |ui| {
+                    let ui_rect = ui.max_rect();
+                    draw_woodstock_decorations(ui, ui_rect, scale);
+
                     // ── Header ──
                     ui.vertical_centered(|ui| {
                         ui.label(egui::RichText::new("GENX DELAY").heading().color(TEXT_DARK));
@@ -310,12 +608,7 @@ pub fn create(
                             );
 
                             ui.add_space(4.0 * scale);
-                            handle_enum_buttons::<DelayMode>(
-                                ui,
-                                setter,
-                                &params.mode,
-                                "Mode",
-                            );
+                            handle_enum_buttons::<DelayMode>(ui, setter, &params.mode, "Mode");
                         });
 
                         // STEREO section

@@ -181,7 +181,10 @@ mod tests {
                 break;
             }
         }
-        assert!(has_nonzero || out.abs() > 0.0, "Reverse delay should produce non-zero output");
+        assert!(
+            has_nonzero || out.abs() > 0.0,
+            "Reverse delay should produce non-zero output"
+        );
     }
 
     #[test]

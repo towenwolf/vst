@@ -34,6 +34,13 @@ pub(crate) struct WoodstockDecorationMetrics {
     pub(crate) dove_size: f32,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct SectionAccentMetrics {
+    pub(crate) line_thickness: f32,
+    pub(crate) ornament_radius: f32,
+    pub(crate) ornament_gap: f32,
+}
+
 pub(crate) fn woodstock_decoration_metrics(scale: f32) -> WoodstockDecorationMetrics {
     let clamped_scale = scale.clamp(0.5, 2.0);
     WoodstockDecorationMetrics {
@@ -46,6 +53,15 @@ pub(crate) fn woodstock_decoration_metrics(scale: f32) -> WoodstockDecorationMet
         wire_spacing: 24.0 * clamped_scale,
         corner_extent: 34.0 * clamped_scale,
         dove_size: 28.0 * clamped_scale,
+    }
+}
+
+pub(crate) fn section_accent_metrics(scale: f32) -> SectionAccentMetrics {
+    let clamped_scale = scale.clamp(0.5, 2.0);
+    SectionAccentMetrics {
+        line_thickness: (0.9 * clamped_scale).max(0.7),
+        ornament_radius: (1.2 * clamped_scale).max(0.9),
+        ornament_gap: 7.0 * clamped_scale,
     }
 }
 
@@ -202,7 +218,41 @@ fn handle_enum_combobox<T: Enum + PartialEq + Copy + 'static>(
 
 fn section_label(ui: &mut egui::Ui, text: &str, color: egui::Color32, scale: f32) {
     ui.label(egui::RichText::new(text).small().strong().color(color));
+    draw_section_accent(ui, color, scale);
     ui.add_space(4.0 * scale);
+}
+
+fn draw_section_accent(ui: &mut egui::Ui, color: egui::Color32, scale: f32) {
+    let metrics = section_accent_metrics(scale);
+    let width = ui.available_width().max(40.0 * scale);
+    let (response, painter) =
+        ui.allocate_painter(egui::vec2(width, 6.0 * scale), egui::Sense::hover());
+
+    let rect = response.rect;
+    let y = rect.center().y;
+    let left = rect.left() + 2.0 * scale;
+    let right = rect.right() - 2.0 * scale;
+    let center = rect.center().x;
+
+    painter.line_segment(
+        [egui::pos2(left, y), egui::pos2(right, y)],
+        egui::Stroke::new(metrics.line_thickness, color.gamma_multiply(0.42)),
+    );
+    painter.circle_filled(
+        egui::pos2(center - metrics.ornament_gap, y),
+        metrics.ornament_radius,
+        color.gamma_multiply(0.52),
+    );
+    painter.circle_filled(
+        egui::pos2(center + metrics.ornament_gap, y),
+        metrics.ornament_radius,
+        color.gamma_multiply(0.52),
+    );
+    painter.rect_filled(
+        egui::Rect::from_center_size(egui::pos2(center, y), egui::vec2(4.4 * scale, 1.4 * scale)),
+        0.0,
+        color.gamma_multiply(0.62),
+    );
 }
 
 fn draw_woodstock_decorations(ui: &egui::Ui, rect: egui::Rect, scale: f32) {

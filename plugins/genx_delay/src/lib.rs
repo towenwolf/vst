@@ -1260,13 +1260,43 @@ mod gui_usability_tests {
     }
 
     #[test]
-    #[ignore = "GDX-04 visual gate: manual UI review required for Woodstock polish elements"]
-    fn gdx_04_visual_polish_manual_review_gate() {
-        // Manual acceptance check:
-        // - barbed-wire separators present
-        // - section accent treatments align with design system
-        // - decorative elements do not reduce control clarity
-        panic!("Manual visual gate for GDX-04");
+    fn gdx_04_visual_polish_contract() {
+        let deco_small = editor::woodstock_decoration_metrics(0.5);
+        let deco_base = editor::woodstock_decoration_metrics(1.0);
+        let deco_large = editor::woodstock_decoration_metrics(1.8);
+
+        assert!(
+            deco_base.wire_spacing > 0.0,
+            "barbed-wire separator spacing must remain positive"
+        );
+        assert!(
+            deco_small.wire_spacing < deco_base.wire_spacing
+                && deco_base.wire_spacing < deco_large.wire_spacing,
+            "barbed-wire spacing should scale monotonically with window scale"
+        );
+
+        let accent_small = editor::section_accent_metrics(0.5);
+        let accent_base = editor::section_accent_metrics(1.0);
+        let accent_large = editor::section_accent_metrics(1.8);
+
+        assert!(
+            accent_base.line_thickness > 0.0,
+            "section accent lines must stay visible"
+        );
+        assert!(
+            accent_base.ornament_radius > 0.0 && accent_base.ornament_gap > 0.0,
+            "section accent ornaments must remain renderable"
+        );
+        assert!(
+            accent_small.line_thickness <= accent_base.line_thickness
+                && accent_base.line_thickness <= accent_large.line_thickness,
+            "section accent line thickness should scale with window size"
+        );
+        assert!(
+            accent_small.ornament_gap < accent_base.ornament_gap
+                && accent_base.ornament_gap < accent_large.ornament_gap,
+            "section accent ornament spacing should scale with window size"
+        );
     }
 
     #[test]
@@ -1339,14 +1369,25 @@ mod gui_usability_tests {
     #[test]
     #[ignore = "GDX-06 host gate: requires manual DAW smoke tests"]
     fn gdx_06_host_smoke_test_matrix_gate() {
-        // Manual acceptance check in release candidate:
-        // Ableton + REAPER + Bitwig + one additional host:
-        // - insert plugin/open GUI
-        // - automate 3+ params during playback
-        // - save/close/reopen session
-        // - repeatedly open/close GUI
-        // - verify resize/HiDPI behavior
-        panic!("Manual host smoke-test gate for GDX-06");
+        // Manual acceptance check in release candidate.
+        // See docs/GDX_06_SMOKE_TEST_REPORT.md for the full checklist.
+        //
+        // Required hosts (minimum 4):
+        //   1. REAPER          — [ ] tested
+        //   2. Ableton Live    — [ ] tested
+        //   3. Bitwig Studio   — [ ] tested
+        //   4. (additional)    — [ ] tested
+        //
+        // Per-host checks:
+        //   [1] Insert plugin and open GUI
+        //   [2] Automate 3+ params during playback
+        //   [3] Save project, close host, reopen, verify state
+        //   [4] Toggle GUI open/close repeatedly during playback
+        //   [5] Validate resizing and HiDPI scaling
+        //
+        // Once all hosts pass, replace the panic below with an assert
+        // and mark the checkboxes above. Record results in the report doc.
+        panic!("GDX-06: manual host smoke tests not yet recorded — see docs/GDX_06_SMOKE_TEST_REPORT.md");
     }
 
     #[test]

@@ -283,7 +283,15 @@ fn handle_enum_combobox<T: Enum + PartialEq + Copy + 'static>(
 }
 
 fn section_label(ui: &mut egui::Ui, text: &str, color: egui::Color32, scale: f32) {
-    ui.label(egui::RichText::new(text).small().strong().color(color));
+    ui.label(
+        egui::RichText::new(text)
+            .font(egui::FontId::new(
+                13.0 * scale,
+                egui::FontFamily::Name("Righteous".into()),
+            ))
+            .strong()
+            .color(color),
+    );
     draw_section_accent(ui, color, scale);
     ui.add_space(4.0 * scale);
 }

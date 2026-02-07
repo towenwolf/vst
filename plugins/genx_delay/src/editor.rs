@@ -70,6 +70,20 @@ fn apply_theme(ctx: &egui::Context) {
     ctx.set_style(style);
 }
 
+fn handle_bool_param(
+    ui: &mut egui::Ui,
+    setter: &ParamSetter<'_>,
+    param: &BoolParam,
+    value: &mut bool,
+    label: &str,
+) {
+    if ui.checkbox(value, label).changed() {
+        setter.begin_set_parameter(param);
+        setter.set_parameter(param, *value);
+        setter.end_set_parameter(param);
+    }
+}
+
 fn handle_slider_param(
     ui: &mut egui::Ui,
     setter: &ParamSetter<'_>,
@@ -129,6 +143,16 @@ pub fn create(
                                 &mut delay_time_value,
                                 "Delay Time (ms)",
                                 1.0..=2500.0,
+                            );
+
+                            ui.add_space(4.0);
+                            let mut reverse_value = params.reverse.value();
+                            handle_bool_param(
+                                ui,
+                                setter,
+                                &params.reverse,
+                                &mut reverse_value,
+                                "Reverse",
                             );
                         });
 

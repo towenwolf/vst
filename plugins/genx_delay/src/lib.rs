@@ -10,12 +10,14 @@ mod ducker;
 mod editor;
 mod filters;
 mod modulation;
+mod reverse_delay;
 mod saturation;
 
 use delay_line::DelayLine;
 use ducker::Ducker;
 use filters::{FeedbackFilter, OnePoleLP};
 use modulation::StereoModulator;
+use reverse_delay::ReverseDelayLine;
 use saturation::Saturator;
 
 /// Maximum delay time in seconds.
@@ -128,6 +130,10 @@ pub struct GenXDelayParams {
     #[id = "mode"]
     pub mode: EnumParam<DelayMode>,
 
+    // === Reverse ===
+    #[id = "reverse"]
+    pub reverse: BoolParam,
+
     // === Stereo ===
     #[id = "ping_pong"]
     pub ping_pong: BoolParam,
@@ -203,6 +209,8 @@ impl Default for GenXDelayParams {
                 .with_smoother(SmoothingStyle::Linear(50.0)),
 
             mode: EnumParam::new("Mode", DelayMode::Digital),
+
+            reverse: BoolParam::new("Reverse", false),
 
             ping_pong: BoolParam::new("Ping Pong", false),
 
@@ -303,6 +311,10 @@ struct GenXDelay {
     delay_left: DelayLine,
     delay_right: DelayLine,
 
+    // Reverse delay lines (stereo)
+    reverse_left: ReverseDelayLine,
+    reverse_right: ReverseDelayLine,
+
     // Feedback from previous sample (for ping-pong and feedback loop)
     feedback_left: f32,
     feedback_right: f32,
@@ -333,6 +345,8 @@ impl Default for GenXDelay {
             sample_rate: 44100.0,
             delay_left: DelayLine::default(),
             delay_right: DelayLine::default(),
+            reverse_left: ReverseDelayLine::default(),
+            reverse_right: ReverseDelayLine::default(),
             feedback_left: 0.0,
             feedback_right: 0.0,
             filter_left: FeedbackFilter::default(),
@@ -398,6 +412,12 @@ impl Plugin for GenXDelay {
         self.delay_right
             .initialize(self.sample_rate, MAX_DELAY_SECONDS);
 
+        // Initialize reverse delay lines
+        self.reverse_left
+            .initialize(self.sample_rate, MAX_DELAY_SECONDS);
+        self.reverse_right
+            .initialize(self.sample_rate, MAX_DELAY_SECONDS);
+
         // Initialize modulator
         self.modulator.initialize(self.sample_rate);
 
@@ -420,6 +440,8 @@ impl Plugin for GenXDelay {
     fn reset(&mut self) {
         self.delay_left.reset();
         self.delay_right.reset();
+        self.reverse_left.reset();
+        self.reverse_right.reset();
         self.feedback_left = 0.0;
         self.feedback_right = 0.0;
         self.filter_left.reset();
@@ -456,6 +478,7 @@ impl Plugin for GenXDelay {
             let tempo_sync = self.params.tempo_sync.value();
             let note_division = self.params.note_division.value();
             let mode = self.params.mode.value();
+            let reverse = self.params.reverse.value();
             let ping_pong = self.params.ping_pong.value();
 
             // Calculate delay time
@@ -526,9 +549,16 @@ impl Plugin for GenXDelay {
                 1.0
             };
 
-            // Read from delay lines
-            let delayed_left = self.delay_left.read(smooth_delay_l);
-            let delayed_right = self.delay_right.read(smooth_delay_r);
+            // Read from delay lines (forward or reverse)
+            let delayed_left;
+            let delayed_right;
+            if reverse {
+                delayed_left = self.reverse_left.read(smooth_delay_l);
+                delayed_right = self.reverse_right.read(smooth_delay_r);
+            } else {
+                delayed_left = self.delay_left.read(smooth_delay_l);
+                delayed_right = self.delay_right.read(smooth_delay_r);
+            }
 
             // Process through feedback filters and saturation
             let filtered_left = self.filter_left.process(delayed_left);
@@ -551,9 +581,14 @@ impl Plugin for GenXDelay {
                 )
             };
 
-            // Write to delay lines
-            self.delay_left.write(delay_input_left);
-            self.delay_right.write(delay_input_right);
+            // Write to delay lines (forward or reverse)
+            if reverse {
+                self.reverse_left.write(delay_input_left);
+                self.reverse_right.write(delay_input_right);
+            } else {
+                self.delay_left.write(delay_input_left);
+                self.delay_right.write(delay_input_right);
+            }
 
             // Store feedback for next sample (for ping-pong)
             self.feedback_left = saturated_left;
@@ -792,6 +827,16 @@ mod gui_usability_tests {
     }
 
     #[test]
+    fn reverse_default_is_off() {
+        let p = test_params();
+        let v = p.reverse.default_plain_value();
+        assert!(
+            !v,
+            "Reverse should default to off — forward delay is the standard starting point"
+        );
+    }
+
+    #[test]
     fn mode_default_is_digital() {
         let p = test_params();
         let v = p.mode.default_plain_value();
@@ -895,6 +940,7 @@ mod gui_usability_tests {
             "feedback",
             "mix",
             "mode",
+            "reverse",
             "ping_pong",
             "stereo_offset",
             "lowpass_freq",
@@ -915,9 +961,9 @@ mod gui_usability_tests {
 
     #[test]
     fn expected_parameter_count() {
-        // 15 parameter IDs (not counting editor_state which is persisted but not a user param)
+        // 16 parameter IDs (not counting editor_state which is persisted but not a user param)
         // If a parameter is added or removed, this test catches the drift.
-        let expected = 15;
+        let expected = 16;
         let ids = [
             "delay_time",
             "tempo_sync",
@@ -925,6 +971,7 @@ mod gui_usability_tests {
             "feedback",
             "mix",
             "mode",
+            "reverse",
             "ping_pong",
             "stereo_offset",
             "lowpass_freq",

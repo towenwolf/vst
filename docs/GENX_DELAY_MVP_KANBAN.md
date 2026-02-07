@@ -20,6 +20,7 @@ Source snapshot: `plugins/genx_delay/src/lib.rs` + `plugins/genx_delay/src/edito
 
 | ID | Priority | Task | Why it is still open | Definition of Done |
 |---|---|---|---|---|
+| GDX-00 | P0 | Fix resizable-window content scaling | Resizable window size changes, but text/control sizing does not scale with it, causing readability/usability issues | On window resize, typography and controls scale proportionally and remain readable/usable at min/max sizes (no clipped labels, no tiny text) |
 | ~~GDX-01~~ | ~~P0~~ | ~~Build full 600x420 GUI layout~~ | ~~Done~~ | ~~Done~~ |
 | GDX-02 | P0 | Wire all missing controls in GUI | Current GUI only exposes Delay Time, Reverse, Feedback, Mix | GUI exposes and writes: Tempo Sync, Note Division, Mode, Ping Pong, Stereo Offset, HP/LP, Mod Rate/Depth/Drive, Duck Amount/Threshold |
 | GDX-03 | P0 | Add mode-dependent UI states | Design requires modulation controls to be disabled in Digital mode | Mod controls are visually distinct and non-interactive when `Mode=Digital`; interactive when `Mode=Analog` |
@@ -34,7 +35,7 @@ Source snapshot: `plugins/genx_delay/src/lib.rs` + `plugins/genx_delay/src/edito
 - Confirm target host matrix (minimum 4th host choice): Logic via CLAP wrapper is out; likely FL Studio or Studio One.
 
 ## Suggested Execution Order
-1. GDX-01
+1. GDX-00
 2. GDX-02
 3. GDX-03
 4. GDX-05

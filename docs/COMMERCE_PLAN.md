@@ -86,65 +86,71 @@ Deliverables:
 - Log webhook and fulfillment failures.
 - Back up DB and storage metadata.
 
-## Google Cloud Deployment Plan
+## Google Cloud Deployment (Simplified)
 
-Recommended stack:
-- Cloud Run: `web` and `api` containers
-- Cloud SQL (Postgres): persistent data
+Stack (single environment, no separate staging for MVP):
+- Cloud Run: API + web (one or two minimal services)
+- Cloud SQL (Postgres): smallest managed tier
 - Cloud Storage: plugin binary hosting
-- Secret Manager: Stripe/email/database secrets
-- Cloud Logging + Error Reporting: observability
+- Secret Manager: Stripe keys, DB credentials, email API key
+- Cloud Logging: observability
 
-Deployment phases:
-1. Provision staging project/resources.
-2. Deploy containers to staging Cloud Run.
-3. Configure staging Stripe keys/webhooks.
-4. Validate purchase flow end-to-end in Stripe test mode.
-5. Provision production resources.
-6. Configure production Stripe live mode.
-7. Cut over DNS/domain.
-8. Run launch checklist and announce.
+Deployment:
+1. Provision production GCP project and resources.
+2. Deploy containers to Cloud Run.
+3. Configure Stripe webhooks (test mode first, then live).
+4. Set up DNS + TLS (Cloud Run managed domain or Cloudflare).
+5. Validate full purchase flow in Stripe test mode on production infra.
+6. Switch Stripe to live mode and launch.
 
-## Open Business Decision
+No separate staging environment for MVP. Use Stripe test mode on production
+infrastructure to validate before going live. A staging environment can be
+added post-launch if needed.
 
-- Seller country/business entity is not finalized.
-- This impacts tax/legal setup (Stripe Tax, invoices, terms).
-- Temporary assumption for technical work: US-based setup unless changed.
+## Business Decisions
+
+- Seller entity: US-based (confirmed for launch).
+- Market: US-only at launch. No international VAT/tax complexity.
+- International expansion: future decision point. When ready, evaluate
+  Lemon Squeezy or FastSpring as Merchant of Record for global tax handling
+  vs. adding Stripe Tax to the self-hosted stack.
 
 ## Milestones
 
 ### Milestone 1: Local Commerce MVP
-- Docker stack running
-- Stripe test checkout works
-- Webhook fulfillment works
-- License + email + download links work locally
+- Docker stack running (done)
+- Stripe test checkout works (done)
+- Webhook fulfillment works (done)
+- License generation works locally
+- Fulfillment email sends locally (maildev)
+- Download link works locally
 
-### Milestone 2: Staging on Google Cloud
-- Web/API deployed to Cloud Run
-- Cloud SQL + Cloud Storage integrated
-- Staging Stripe webhook flow verified
-
-### Milestone 3: Production Readiness
-- Security hardening complete
-- Monitoring/alerts configured
-- Backup strategy verified
-- Legal/policy pages published
-
-### Milestone 4: Launch
+### Milestone 2: Deployed and Live
+- Cloud Run + Cloud SQL + Cloud Storage provisioned
+- Full purchase flow verified in Stripe test mode on Cloud Run
 - Stripe live mode enabled
+- Legal/policy pages published
 - First real purchase test complete
-- Public release of website + plugin distribution
+- Public launch
+
+### Milestone 3: Post-Launch Stabilization
+- Uptime monitoring configured
+- Cloud SQL backups verified
+- Critical bugs patched
+- Prepare v2 backlog (international expansion, account portal, etc.)
 
 ## Immediate Next Steps
 
-1. Scaffold `web` + `api` projects and Docker Compose.
-2. Implement `/checkout` and `/webhooks/stripe` endpoints.
-3. Add DB schema for orders/licenses/download tokens.
-4. Add email templates for fulfillment.
-5. Add signed download token flow backed by local storage, then Cloud Storage.
+1. Implement licensing in webhook fulfillment flow.
+2. Add download delivery endpoint with signed URLs.
+3. Add fulfillment email (Resend/Postmark, maildev locally).
+4. Polish frontend MVP (landing page, success/cancel pages).
+5. Test full flow end-to-end locally.
+6. Deploy to Google Cloud and launch.
 
 ## Wish List
 
+- Separate staging environment.
 - Account portal (optional) for download history and re-send links.
 - Upgrade/crossgrade pricing support for future plugin releases.
 - Coupon and launch campaign support in Stripe.
@@ -155,16 +161,16 @@ Deployment phases:
 - In-app update check endpoint for plugin versions.
 - Multi-language storefront support.
 - Post-purchase onboarding emails (quick start, install guide, support links).
+- International expansion with Merchant of Record (Lemon Squeezy / FastSpring).
+- Full security audit (rate limiting, audit logging, webhook replay review).
+- Email retry queue and dead-letter handling.
 
 ## Issues / Risks
 
-- Business entity/country is unresolved, which affects tax/legal configuration.
 - Guest checkout increases support load for lost-email and link recovery cases.
 - Download link abuse risk if links are forwarded; requires strict expiry/rate limits.
 - Webhook reliability risk (missed/replayed events) without idempotency + monitoring.
-- Binary distribution integrity risk without checksums/signing verification UX.
-- Operational risk from secret misconfiguration across local/staging/prod.
 - Email deliverability risk (spam filtering, domain reputation, DNS setup).
 - Refund/chargeback handling flow is not yet implemented end-to-end.
-- No explicit disaster-recovery runbook yet for DB/storage restore.
-- Launch timeline depends on completing manual commerce smoke tests in staging and prod.
+- No separate staging environment for MVP launch (mitigated by Stripe test mode on prod).
+- No disaster-recovery runbook yet (mitigated by Cloud SQL automated backups post-launch).

@@ -139,7 +139,14 @@ infra/docker/scripts/down.sh
 - Maildev SMTP: `localhost:1025`
 - Maildev UI: `localhost:1080`
 
-## Next Backlog Step
+## Next Backlog Steps
 
-Per `docs/COMMERCE_BACKLOG.md`, move to task 8:
-- Implement simple licensing.
+Per `docs/COMMERCE_BACKLOG.md`, the MVP critical path is:
+
+- **Task 8:** Implement simple licensing (generate keys on fulfillment).
+- **Task 9:** Implement download delivery (signed URLs, `GET /download/:token`).
+- **Task 10:** Implement fulfillment email (Resend/Postmark, maildev locally).
+- **Task 11:** Build frontend MVP (landing page, buy button, success/cancel pages).
+- **Task 12:** Local end-to-end validation.
+- **Task 13:** Deploy to Google Cloud (Cloud Run + Cloud SQL + Cloud Storage).
+- **Task 14:** Production launch (Stripe live mode, DNS, first real purchase).

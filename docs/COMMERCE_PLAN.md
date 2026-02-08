@@ -1,5 +1,7 @@
 # GenX Delay Hosting and Commerce Plan
 
+> Execution tracker: see `docs/COMMERCE_BACKLOG.md` for the sequential implementation backlog, wishlist, and risk log.
+
 ## Scope
 
 Sell/distribute the VST3 plugin through a website with:

@@ -1,6 +1,7 @@
 # GenX Delay Hosting and Commerce Plan
 
 > Execution tracker: see `docs/COMMERCE_BACKLOG.md` for the sequential implementation backlog, wishlist, and risk log.
+> Parallel marketplace channel: see `docs/MARKETPLACE_PLAN.md` for the Gumroad quick-launch track.
 
 ## Scope
 

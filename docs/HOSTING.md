@@ -137,3 +137,29 @@ Deployment phases:
 3. Add DB schema for orders/licenses/download tokens.
 4. Add email templates for fulfillment.
 5. Add signed download token flow backed by local storage, then Cloud Storage.
+
+## Wish List
+
+- Account portal (optional) for download history and re-send links.
+- Upgrade/crossgrade pricing support for future plugin releases.
+- Coupon and launch campaign support in Stripe.
+- Built-in analytics dashboard for sales, conversion, refunds, and churn signals.
+- Automatic release pipeline to upload new plugin builds and update download manifests.
+- Basic affiliate/referral tracking.
+- Optional machine-bound activation for stronger license enforcement.
+- In-app update check endpoint for plugin versions.
+- Multi-language storefront support.
+- Post-purchase onboarding emails (quick start, install guide, support links).
+
+## Issues / Risks
+
+- Business entity/country is unresolved, which affects tax/legal configuration.
+- Guest checkout increases support load for lost-email and link recovery cases.
+- Download link abuse risk if links are forwarded; requires strict expiry/rate limits.
+- Webhook reliability risk (missed/replayed events) without idempotency + monitoring.
+- Binary distribution integrity risk without checksums/signing verification UX.
+- Operational risk from secret misconfiguration across local/staging/prod.
+- Email deliverability risk (spam filtering, domain reputation, DNS setup).
+- Refund/chargeback handling flow is not yet implemented end-to-end.
+- No explicit disaster-recovery runbook yet for DB/storage restore.
+- Launch timeline depends on completing manual commerce smoke tests in staging and prod.

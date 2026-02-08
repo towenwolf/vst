@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GenX Delay | Analog Grit, Digital Control</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <header class="topbar">
+      <a class="brand" href="/">GENX DELAY</a>
+      <nav class="nav">
+        <a href="#features">Features</a>
+        <a href="#faq">FAQ</a>
+        <a href="#support">Support</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="eyebrow">VST3 / ONE-TIME LICENSE</p>
+        <h1>Delay lines with teeth.</h1>
+        <p class="lead">
+          GenX Delay blends reverse smear, modulation drift, and saturation color into one fast workflow.
+          Pay once, get your license and download flow instantly.
+        </p>
+
+        <div class="buy-card" id="buy">
+          <div class="price">$49.00</div>
+          <form id="checkout-form">
+            <label for="email">Email for delivery</label>
+            <input id="email" name="email" type="email" placeholder="you@example.com" required />
+            <button id="buy-button" type="submit">Buy GenX Delay</button>
+          </form>
+          <p id="checkout-message" class="message" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section id="features" class="panel">
+        <h2>Why Producers Use It</h2>
+        <div class="feature-grid">
+          <article>
+            <h3>Reverse Engine</h3>
+            <p>Flip rhythmic phrases into controlled chaos without rebuilding your routing.</p>
+          </article>
+          <article>
+            <h3>Color Stack</h3>
+            <p>Filter + saturation + ducking in one surface so delays sit inside dense mixes.</p>
+          </article>
+          <article>
+            <h3>Fast Recovery</h3>
+            <p>No account required. Purchase by email and recover fulfillment links when needed.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="faq" class="panel">
+        <h2>FAQ</h2>
+        <details>
+          <summary>Is this a subscription?</summary>
+          <p>No. Single payment. No recurring billing.</p>
+        </details>
+        <details>
+          <summary>How do I get the plugin after purchase?</summary>
+          <p>You receive a license + secure download link through the fulfillment flow.</p>
+        </details>
+        <details>
+          <summary>Can I test the flow without Stripe?</summary>
+          <p>Yes. The local MVP uses mock mode for checkout and webhook testing.</p>
+        </details>
+      </section>
+
+      <section id="support" class="panel support">
+        <h2>Support</h2>
+        <p>Email: <a href="mailto:support@example.com">support@example.com</a></p>
+        <p>Need refund policy details? See the commerce docs while legal pages are being finalized.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a href="#support">Support</a>
+      <a href="#faq">FAQ</a>
+      <a href="/checkout/cancel">Cancel Demo</a>
+    </footer>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

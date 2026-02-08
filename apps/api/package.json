@@ -1,0 +1,14 @@
+{
+  "name": "genx-commerce-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local commerce API scaffold for GenX Delay",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test:smoke": "bash tests/smoke.sh"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}

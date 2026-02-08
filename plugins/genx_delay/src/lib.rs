@@ -252,6 +252,10 @@ pub struct GenXDelayParams {
 
     #[id = "duck_threshold"]
     pub duck_threshold: FloatParam,
+
+    // === Output Trim ===
+    #[id = "trim"]
+    pub trim: FloatParam,
 }
 
 impl Default for GenXDelayParams {
@@ -384,6 +388,18 @@ impl Default for GenXDelayParams {
             .with_unit(" %")
             .with_value_to_string(formatters::v2s_f32_percentage(0))
             .with_string_to_value(formatters::s2v_f32_percentage())
+            .with_smoother(SmoothingStyle::Linear(50.0)),
+
+            trim: FloatParam::new(
+                "Trim",
+                0.0,
+                FloatRange::Linear {
+                    min: -12.0,
+                    max: 12.0,
+                },
+            )
+            .with_unit(" dB")
+            .with_value_to_string(formatters::v2s_f32_rounded(1))
             .with_smoother(SmoothingStyle::Linear(50.0)),
         }
     }
@@ -696,6 +712,12 @@ impl Plugin for GenXDelay {
 
             let output_left = input_left * (1.0 - mix) + wet_left * mix;
             let output_right = input_right * (1.0 - mix) + wet_right * mix;
+
+            // Apply output trim
+            let trim_db = self.params.trim.smoothed.next();
+            let trim_gain = util::db_to_gain(trim_db);
+            let output_left = output_left * trim_gain;
+            let output_right = output_right * trim_gain;
 
             // Safety stage: stereo-linked limiter + hard clamp.
             let stereo_peak = output_left.abs().max(output_right.abs());
@@ -1136,6 +1158,7 @@ mod gui_usability_tests {
             "drive",
             "duck_amount",
             "duck_threshold",
+            "trim",
         ];
         let unique: HashSet<&str> = ids.iter().copied().collect();
         assert_eq!(
@@ -1147,9 +1170,9 @@ mod gui_usability_tests {
 
     #[test]
     fn expected_parameter_count() {
-        // 16 parameter IDs (not counting editor_state which is persisted but not a user param)
+        // 17 parameter IDs (not counting editor_state which is persisted but not a user param)
         // If a parameter is added or removed, this test catches the drift.
-        let expected = 16;
+        let expected = 17;
         let ids = [
             "delay_time",
             "tempo_sync",
@@ -1167,6 +1190,7 @@ mod gui_usability_tests {
             "drive",
             "duck_amount",
             "duck_threshold",
+            "trim",
         ];
         assert_eq!(
             ids.len(),
@@ -1194,6 +1218,7 @@ mod gui_usability_tests {
             p.drive.name(),
             p.duck_amount.name(),
             p.duck_threshold.name(),
+            p.trim.name(),
         ];
         for name in &names {
             assert!(
@@ -1218,6 +1243,7 @@ mod gui_usability_tests {
             p.drive.name(),
             p.duck_amount.name(),
             p.duck_threshold.name(),
+            p.trim.name(),
         ];
         for name in &names {
             assert!(
@@ -1364,6 +1390,7 @@ mod gui_usability_tests {
         let _drive = p.drive.smoothed.style;
         let _duck_amt = p.duck_amount.smoothed.style;
         let _duck_thr = p.duck_threshold.smoothed.style;
+        let _trim = p.trim.smoothed.style;
         // If any of these didn't have smoothing configured, the style would be None/default.
         // This test primarily ensures the params compile and don't panic.
     }
@@ -1453,6 +1480,7 @@ mod gui_usability_tests {
             "drive",
             "duck_amount",
             "duck_threshold",
+            "trim",
         ];
 
         let unique: HashSet<&str> = expected_ids.iter().copied().collect();

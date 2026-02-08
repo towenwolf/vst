@@ -56,7 +56,9 @@ mod tests {
 
     #[test]
     fn test_z_normalize() {
-        let input = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0];
+        let input = [
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+        ];
         let normalized = z_normalize(&input);
 
         // Mean should be ~0
@@ -75,7 +77,9 @@ mod tests {
 
     #[test]
     fn test_rotate_profile() {
-        let profile = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0];
+        let profile = [
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+        ];
 
         // Rotate by 0 should be identity
         let rotated = rotate_profile(&profile, 0);

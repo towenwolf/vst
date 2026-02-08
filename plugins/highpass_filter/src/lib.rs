@@ -55,7 +55,10 @@ impl Default for HighPassParams {
             resonance: FloatParam::new(
                 "Resonance",
                 0.707,
-                FloatRange::Linear { min: 0.5, max: 10.0 },
+                FloatRange::Linear {
+                    min: 0.5,
+                    max: 10.0,
+                },
             )
             .with_unit(" Q")
             .with_value_to_string(formatters::v2s_f32_rounded(2))
@@ -129,12 +132,7 @@ impl Plugin for HighPassFilter {
         let slope = self.params.slope.value();
 
         for filter in &mut self.filters {
-            filter.update_coefficients(
-                self.sample_rate,
-                cutoff,
-                resonance,
-                to_filter_slope(slope),
-            );
+            filter.update_coefficients(self.sample_rate, cutoff, resonance, to_filter_slope(slope));
         }
 
         true
@@ -204,10 +202,8 @@ impl ClapPlugin for HighPassFilter {
 
 impl Vst3Plugin for HighPassFilter {
     const VST3_CLASS_ID: [u8; 16] = *b"TrwolfHPFilterPl";
-    const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] = &[
-        Vst3SubCategory::Fx,
-        Vst3SubCategory::Filter,
-    ];
+    const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] =
+        &[Vst3SubCategory::Fx, Vst3SubCategory::Filter];
 }
 
 nih_export_clap!(HighPassFilter);

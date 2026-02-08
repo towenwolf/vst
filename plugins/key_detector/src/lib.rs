@@ -345,7 +345,9 @@ impl Plugin for KeyDetectorPlugin {
                 // Update output if above threshold
                 let confidence = result.confidence();
                 if confidence >= threshold {
-                    self.output.root.store(result.root as u32, Ordering::Relaxed);
+                    self.output
+                        .root
+                        .store(result.root as u32, Ordering::Relaxed);
                     self.output
                         .mode
                         .store(if result.is_major { 0 } else { 1 }, Ordering::Relaxed);

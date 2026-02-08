@@ -103,8 +103,10 @@ pub fn create(
                     // Simple confidence bar
                     let bar_width = 200.0;
                     let bar_height = 8.0;
-                    let (rect, _) =
-                        ui.allocate_exact_size(Vec2::new(bar_width, bar_height), egui::Sense::hover());
+                    let (rect, _) = ui.allocate_exact_size(
+                        Vec2::new(bar_width, bar_height),
+                        egui::Sense::hover(),
+                    );
 
                     let painter = ui.painter();
 
@@ -113,7 +115,8 @@ pub fn create(
 
                     // Filled portion
                     let fill_width = (confidence / 100.0).clamp(0.0, 1.0) * bar_width;
-                    let fill_rect = egui::Rect::from_min_size(rect.min, Vec2::new(fill_width, bar_height));
+                    let fill_rect =
+                        egui::Rect::from_min_size(rect.min, Vec2::new(fill_width, bar_height));
                     painter.rect_filled(fill_rect, 4.0, key_color);
                 });
             });

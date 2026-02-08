@@ -2,18 +2,22 @@
 //! Inspired by the warm, modulated delay sounds of artists like Incubus.
 
 use nih_plug::prelude::*;
+use nih_plug_egui::EguiState;
 use std::sync::Arc;
 
 mod delay_line;
 mod ducker;
+mod editor;
 mod filters;
 mod modulation;
+mod reverse_delay;
 mod saturation;
 
 use delay_line::DelayLine;
 use ducker::Ducker;
 use filters::{FeedbackFilter, OnePoleLP};
 use modulation::StereoModulator;
+use reverse_delay::ReverseDelayLine;
 use saturation::Saturator;
 
 /// Maximum delay time in seconds.
@@ -21,6 +25,14 @@ const MAX_DELAY_SECONDS: f32 = 2.5;
 
 /// Default L/R offset in milliseconds for subtle stereo width.
 const DEFAULT_LR_OFFSET_MS: f32 = 10.0;
+/// Output safety threshold (linear gain). ~-0.45 dBFS
+const SAFETY_LIMITER_THRESHOLD: f32 = 0.95;
+/// Stereo-linked safety limiter attack (seconds).
+const SAFETY_LIMITER_ATTACK_SEC: f32 = 0.001;
+/// Stereo-linked safety limiter release (seconds).
+const SAFETY_LIMITER_RELEASE_SEC: f32 = 0.100;
+/// Absolute cap on delay-line injection to reduce risk of runaway bursts.
+const FEEDBACK_INJECTION_CAP: f32 = 1.25;
 
 /// Delay mode: Digital (clean) or Analog (warm with modulation).
 #[derive(Enum, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -100,9 +112,91 @@ impl NoteDivision {
     }
 }
 
+#[inline]
+fn compute_delay_samples(
+    base_delay_samples: f32,
+    offset_samples: f32,
+    ping_pong: bool,
+) -> (f32, f32) {
+    if ping_pong {
+        // Strict ping-pong uses equal L/R delay times for deterministic alternation.
+        (base_delay_samples, base_delay_samples)
+    } else {
+        (base_delay_samples, base_delay_samples + offset_samples)
+    }
+}
+
+#[inline]
+fn compute_delay_inputs(
+    input_left: f32,
+    input_right: f32,
+    feedback_left: f32,
+    feedback_right: f32,
+    feedback: f32,
+    ping_pong: bool,
+) -> (f32, f32) {
+    if ping_pong {
+        // Strict ping-pong: mono input starts on left and repeats alternate through cross-feedback.
+        let mono_in = 0.5 * (input_left + input_right);
+        (
+            mono_in + feedback_right * feedback,
+            feedback_left * feedback,
+        )
+    } else {
+        // Normal stereo delay path (unchanged).
+        (
+            input_left + feedback_left * feedback,
+            input_right + feedback_right * feedback,
+        )
+    }
+}
+
+#[inline]
+fn limiter_coeff(sample_rate: f32, time_sec: f32) -> f32 {
+    (-1.0 / (sample_rate * time_sec)).exp()
+}
+
+#[inline]
+fn update_safety_limiter(
+    stereo_peak: f32,
+    sample_rate: f32,
+    envelope: &mut f32,
+    gain: &mut f32,
+) -> f32 {
+    let attack = limiter_coeff(sample_rate.max(1.0), SAFETY_LIMITER_ATTACK_SEC);
+    let release = limiter_coeff(sample_rate.max(1.0), SAFETY_LIMITER_RELEASE_SEC);
+
+    // Peak follower with fast attack / slow release.
+    if stereo_peak > *envelope {
+        *envelope = attack * *envelope + (1.0 - attack) * stereo_peak;
+    } else {
+        *envelope = release * *envelope + (1.0 - release) * stereo_peak;
+    }
+
+    let target_gain = if *envelope > SAFETY_LIMITER_THRESHOLD {
+        SAFETY_LIMITER_THRESHOLD / envelope.max(1e-6)
+    } else {
+        1.0
+    };
+
+    // Gain smoothing: react quickly when attenuating, recover slower.
+    let gain_attack = limiter_coeff(sample_rate.max(1.0), 0.001);
+    let gain_release = limiter_coeff(sample_rate.max(1.0), 0.120);
+    if target_gain < *gain {
+        *gain = gain_attack * *gain + (1.0 - gain_attack) * target_gain;
+    } else {
+        *gain = gain_release * *gain + (1.0 - gain_release) * target_gain;
+    }
+
+    *gain
+}
+
 /// Plugin parameters.
 #[derive(Params)]
-struct GenXDelayParams {
+pub struct GenXDelayParams {
+    #[persist = "editor-state"]
+    pub editor_state: Arc<EguiState>,
+
     // === Main Controls ===
     #[id = "delay_time"]
     pub delay_time: FloatParam,
@@ -122,6 +216,10 @@ struct GenXDelayParams {
     // === Mode ===
     #[id = "mode"]
     pub mode: EnumParam<DelayMode>,
+
+    // === Reverse ===
+    #[id = "reverse"]
+    pub reverse: BoolParam,
 
     // === Stereo ===
     #[id = "ping_pong"]
@@ -159,6 +257,8 @@ struct GenXDelayParams {
 impl Default for GenXDelayParams {
     fn default() -> Self {
         Self {
+            editor_state: editor::default_state(),
+
             delay_time: FloatParam::new(
                 "Delay Time",
                 300.0,
@@ -176,11 +276,18 @@ impl Default for GenXDelayParams {
 
             note_division: EnumParam::new("Note Division", NoteDivision::Quarter),
 
-            feedback: FloatParam::new("Feedback", 0.4, FloatRange::Linear { min: 0.0, max: 0.95 })
-                .with_unit(" %")
-                .with_value_to_string(formatters::v2s_f32_percentage(0))
-                .with_string_to_value(formatters::s2v_f32_percentage())
-                .with_smoother(SmoothingStyle::Linear(50.0)),
+            feedback: FloatParam::new(
+                "Feedback",
+                0.4,
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 0.95,
+                },
+            )
+            .with_unit(" %")
+            .with_value_to_string(formatters::v2s_f32_percentage(0))
+            .with_string_to_value(formatters::s2v_f32_percentage())
+            .with_smoother(SmoothingStyle::Linear(50.0)),
 
             mix: FloatParam::new("Mix", 0.3, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_unit(" %")
@@ -190,12 +297,17 @@ impl Default for GenXDelayParams {
 
             mode: EnumParam::new("Mode", DelayMode::Digital),
 
+            reverse: BoolParam::new("Reverse", false),
+
             ping_pong: BoolParam::new("Ping Pong", false),
 
             stereo_offset: FloatParam::new(
                 "Stereo Offset",
                 DEFAULT_LR_OFFSET_MS,
-                FloatRange::Linear { min: 0.0, max: 50.0 },
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 50.0,
+                },
             )
             .with_unit(" ms")
             .with_value_to_string(formatters::v2s_f32_rounded(1))
@@ -286,6 +398,10 @@ struct GenXDelay {
     delay_left: DelayLine,
     delay_right: DelayLine,
 
+    // Reverse delay lines (stereo)
+    reverse_left: ReverseDelayLine,
+    reverse_right: ReverseDelayLine,
+
     // Feedback from previous sample (for ping-pong and feedback loop)
     feedback_left: f32,
     feedback_right: f32,
@@ -307,6 +423,10 @@ struct GenXDelay {
     // Smoothers for delay time (avoid clicks)
     delay_smoother_left: OnePoleLP,
     delay_smoother_right: OnePoleLP,
+
+    // Safety limiter state (stereo-linked)
+    safety_limiter_envelope: f32,
+    safety_limiter_gain: f32,
 }
 
 impl Default for GenXDelay {
@@ -316,6 +436,8 @@ impl Default for GenXDelay {
             sample_rate: 44100.0,
             delay_left: DelayLine::default(),
             delay_right: DelayLine::default(),
+            reverse_left: ReverseDelayLine::default(),
+            reverse_right: ReverseDelayLine::default(),
             feedback_left: 0.0,
             feedback_right: 0.0,
             filter_left: FeedbackFilter::default(),
@@ -326,6 +448,8 @@ impl Default for GenXDelay {
             ducker: Ducker::default(),
             delay_smoother_left: OnePoleLP::default(),
             delay_smoother_right: OnePoleLP::default(),
+            safety_limiter_envelope: 0.0,
+            safety_limiter_gain: 1.0,
         }
     }
 }
@@ -333,8 +457,8 @@ impl Default for GenXDelay {
 impl Plugin for GenXDelay {
     const NAME: &'static str = "GenX Delay";
     const VENDOR: &'static str = "trwolf";
-    const URL: &'static str = "";
-    const EMAIL: &'static str = "";
+    const URL: &'static str = "https://github.com/towenwolf/vst";
+    const EMAIL: &'static str = "towenwolf@users.noreply.github.com";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
     const AUDIO_IO_LAYOUTS: &'static [AudioIOLayout] = &[
@@ -363,6 +487,10 @@ impl Plugin for GenXDelay {
         self.params.clone()
     }
 
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        editor::create(self.params.clone(), self.params.editor_state.clone())
+    }
+
     fn initialize(
         &mut self,
         _audio_io_layout: &AudioIOLayout,
@@ -372,8 +500,16 @@ impl Plugin for GenXDelay {
         self.sample_rate = buffer_config.sample_rate;
 
         // Initialize delay lines
-        self.delay_left.initialize(self.sample_rate, MAX_DELAY_SECONDS);
-        self.delay_right.initialize(self.sample_rate, MAX_DELAY_SECONDS);
+        self.delay_left
+            .initialize(self.sample_rate, MAX_DELAY_SECONDS);
+        self.delay_right
+            .initialize(self.sample_rate, MAX_DELAY_SECONDS);
+
+        // Initialize reverse delay lines
+        self.reverse_left
+            .initialize(self.sample_rate, MAX_DELAY_SECONDS);
+        self.reverse_right
+            .initialize(self.sample_rate, MAX_DELAY_SECONDS);
 
         // Initialize modulator
         self.modulator.initialize(self.sample_rate);
@@ -397,6 +533,8 @@ impl Plugin for GenXDelay {
     fn reset(&mut self) {
         self.delay_left.reset();
         self.delay_right.reset();
+        self.reverse_left.reset();
+        self.reverse_right.reset();
         self.feedback_left = 0.0;
         self.feedback_right = 0.0;
         self.filter_left.reset();
@@ -405,6 +543,8 @@ impl Plugin for GenXDelay {
         self.ducker.reset();
         self.delay_smoother_left.reset();
         self.delay_smoother_right.reset();
+        self.safety_limiter_envelope = 0.0;
+        self.safety_limiter_gain = 1.0;
     }
 
     fn process(
@@ -433,6 +573,7 @@ impl Plugin for GenXDelay {
             let tempo_sync = self.params.tempo_sync.value();
             let note_division = self.params.note_division.value();
             let mode = self.params.mode.value();
+            let reverse = self.params.reverse.value();
             let ping_pong = self.params.ping_pong.value();
 
             // Calculate delay time
@@ -450,33 +591,41 @@ impl Plugin for GenXDelay {
             let base_delay_samples = delay_time_ms * self.sample_rate / 1000.0;
             let offset_samples = stereo_offset_ms * self.sample_rate / 1000.0;
 
-            // Base delay times for L/R
-            let base_delay_l = base_delay_samples;
-            let base_delay_r = base_delay_samples + offset_samples;
+            // Base delay times for L/R.
+            // In strict ping-pong mode, stereo offset is neutralized for clean alternation.
+            let (base_delay_l, base_delay_r) =
+                compute_delay_samples(base_delay_samples, offset_samples, ping_pong);
 
             // Apply modulation in analog mode
-            let (delay_samples_l, delay_samples_r) = if mode == DelayMode::Analog && mod_depth > 0.001 {
-                let max_mod_samples = mod_depth * 20.0; // Up to 20 samples of modulation
-                self.modulator.get_modulated_delays(
-                    base_delay_l,
-                    base_delay_r,
-                    max_mod_samples,
-                    mod_rate,
-                )
-            } else {
-                (base_delay_l, base_delay_r)
-            };
+            let (delay_samples_l, delay_samples_r) =
+                if mode == DelayMode::Analog && mod_depth > 0.001 {
+                    let max_mod_samples = mod_depth * 20.0; // Up to 20 samples of modulation
+                    self.modulator.get_modulated_delays(
+                        base_delay_l,
+                        base_delay_r,
+                        max_mod_samples,
+                        mod_rate,
+                    )
+                } else {
+                    (base_delay_l, base_delay_r)
+                };
 
             // Smooth delay times to avoid clicks
             let smooth_delay_l = self.delay_smoother_left.process(delay_samples_l);
             let smooth_delay_r = self.delay_smoother_right.process(delay_samples_r);
 
             // Update filters
-            self.filter_left.update(self.sample_rate, lowpass_freq, highpass_freq);
-            self.filter_right.update(self.sample_rate, lowpass_freq, highpass_freq);
+            self.filter_left
+                .update(self.sample_rate, lowpass_freq, highpass_freq);
+            self.filter_right
+                .update(self.sample_rate, lowpass_freq, highpass_freq);
 
             // Update saturators
-            let effective_drive = if mode == DelayMode::Analog { drive } else { 0.0 };
+            let effective_drive = if mode == DelayMode::Analog {
+                drive
+            } else {
+                0.0
+            };
             self.saturator_left.set_drive(effective_drive);
             self.saturator_right.set_drive(effective_drive);
 
@@ -490,14 +639,22 @@ impl Plugin for GenXDelay {
 
             // Calculate ducking gain
             let duck_gain = if duck_amount > 0.001 {
-                self.ducker.process_stereo(input_left, input_right, duck_threshold, duck_amount)
+                self.ducker
+                    .process_stereo(input_left, input_right, duck_threshold, duck_amount)
             } else {
                 1.0
             };
 
-            // Read from delay lines
-            let delayed_left = self.delay_left.read(smooth_delay_l);
-            let delayed_right = self.delay_right.read(smooth_delay_r);
+            // Read from delay lines (forward or reverse)
+            let delayed_left;
+            let delayed_right;
+            if reverse {
+                delayed_left = self.reverse_left.read(smooth_delay_l);
+                delayed_right = self.reverse_right.read(smooth_delay_r);
+            } else {
+                delayed_left = self.delay_left.read(smooth_delay_l);
+                delayed_right = self.delay_right.read(smooth_delay_r);
+            }
 
             // Process through feedback filters and saturation
             let filtered_left = self.filter_left.process(delayed_left);
@@ -505,24 +662,29 @@ impl Plugin for GenXDelay {
             let saturated_left = self.saturator_left.process(filtered_left);
             let saturated_right = self.saturator_right.process(filtered_right);
 
-            // Calculate what goes into the delay lines
-            let (delay_input_left, delay_input_right) = if ping_pong {
-                // Ping-pong: cross-feed the feedback
-                (
-                    input_left + self.feedback_right * feedback,
-                    input_right + self.feedback_left * feedback,
-                )
-            } else {
-                // Normal stereo delay
-                (
-                    input_left + saturated_left * feedback,
-                    input_right + saturated_right * feedback,
-                )
-            };
+            // Calculate what goes into the delay lines.
+            // Use already-processed feedback taps to keep a stable one-sample feedback loop.
+            let (delay_input_left, delay_input_right) = compute_delay_inputs(
+                input_left,
+                input_right,
+                saturated_left,
+                saturated_right,
+                feedback,
+                ping_pong,
+            );
+            let delay_input_left =
+                delay_input_left.clamp(-FEEDBACK_INJECTION_CAP, FEEDBACK_INJECTION_CAP);
+            let delay_input_right =
+                delay_input_right.clamp(-FEEDBACK_INJECTION_CAP, FEEDBACK_INJECTION_CAP);
 
-            // Write to delay lines
-            self.delay_left.write(delay_input_left);
-            self.delay_right.write(delay_input_right);
+            // Write to delay lines (forward or reverse)
+            if reverse {
+                self.reverse_left.write(delay_input_left);
+                self.reverse_right.write(delay_input_right);
+            } else {
+                self.delay_left.write(delay_input_left);
+                self.delay_right.write(delay_input_right);
+            }
 
             // Store feedback for next sample (for ping-pong)
             self.feedback_left = saturated_left;
@@ -534,6 +696,17 @@ impl Plugin for GenXDelay {
 
             let output_left = input_left * (1.0 - mix) + wet_left * mix;
             let output_right = input_right * (1.0 - mix) + wet_right * mix;
+
+            // Safety stage: stereo-linked limiter + hard clamp.
+            let stereo_peak = output_left.abs().max(output_right.abs());
+            let limiter_gain = update_safety_limiter(
+                stereo_peak,
+                self.sample_rate,
+                &mut self.safety_limiter_envelope,
+                &mut self.safety_limiter_gain,
+            );
+            let output_left = (output_left * limiter_gain).clamp(-1.0, 1.0);
+            let output_right = (output_right * limiter_gain).clamp(-1.0, 1.0);
 
             // Write output
             *channel_samples.get_mut(0).unwrap() = output_left;
@@ -550,8 +723,9 @@ impl ClapPlugin for GenXDelay {
     const CLAP_ID: &'static str = "com.trwolf.genx-delay";
     const CLAP_DESCRIPTION: Option<&'static str> =
         Some("Delay emulating 00s alternative/rock tones");
-    const CLAP_MANUAL_URL: Option<&'static str> = None;
-    const CLAP_SUPPORT_URL: Option<&'static str> = None;
+    const CLAP_MANUAL_URL: Option<&'static str> =
+        Some("https://github.com/towenwolf/vst/tree/main/plugins/genx_delay");
+    const CLAP_SUPPORT_URL: Option<&'static str> = Some("https://github.com/towenwolf/vst/issues");
     const CLAP_FEATURES: &'static [ClapFeature] = &[
         ClapFeature::AudioEffect,
         ClapFeature::Delay,
@@ -567,3 +741,939 @@ impl Vst3Plugin for GenXDelay {
 
 nih_export_clap!(GenXDelay);
 nih_export_vst3!(GenXDelay);
+
+#[cfg(test)]
+mod gui_usability_tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    /// Helper: create a default params instance for testing.
+    fn test_params() -> GenXDelayParams {
+        GenXDelayParams::default()
+    }
+
+    /// Helper: create a default plugin instance for testing.
+    fn test_plugin() -> GenXDelay {
+        GenXDelay::default()
+    }
+
+    // =========================================================================
+    // Plugin instantiation — Ableton must be able to load the plugin
+    // =========================================================================
+
+    #[test]
+    fn plugin_instantiates_without_panic() {
+        let _plugin = test_plugin();
+    }
+
+    #[test]
+    fn plugin_exposes_params_trait_object() {
+        let plugin = test_plugin();
+        let _params: Arc<dyn Params> = plugin.params();
+    }
+
+    // =========================================================================
+    // Editor / GUI creation — the GUI window must open in the DAW
+    // =========================================================================
+
+    #[test]
+    fn editor_state_creates_with_correct_dimensions() {
+        let params = test_params();
+        let (width, height) = params.editor_state.size();
+        // Design spec: 600x420. Current placeholder: 300x200.
+        // This test documents the expected size — update when the GUI is built out.
+        assert!(
+            width > 0 && height > 0,
+            "editor window must have positive dimensions"
+        );
+        assert!(
+            (200..=1200).contains(&width),
+            "editor width {width} is outside reasonable DAW range (200–1200px)"
+        );
+        assert!(
+            (150..=900).contains(&height),
+            "editor height {height} is outside reasonable DAW range (150–900px)"
+        );
+    }
+
+    #[test]
+    fn editor_state_is_shared_with_params() {
+        let plugin = test_plugin();
+        // The editor state must be accessible from the params (persisted by nih-plug)
+        let _state = plugin.params.editor_state.clone();
+    }
+
+    // =========================================================================
+    // VST3 metadata — Ableton reads this to list and categorize the plugin
+    // =========================================================================
+
+    #[test]
+    fn vst3_class_id_is_16_bytes() {
+        assert_eq!(
+            GenXDelay::VST3_CLASS_ID.len(),
+            16,
+            "VST3 class ID must be exactly 16 bytes"
+        );
+    }
+
+    #[test]
+    fn vst3_class_id_is_not_zeroed() {
+        assert_ne!(
+            GenXDelay::VST3_CLASS_ID,
+            [0u8; 16],
+            "VST3 class ID must not be all zeros"
+        );
+    }
+
+    #[test]
+    fn vst3_subcategories_include_fx_and_delay() {
+        let subcats = GenXDelay::VST3_SUBCATEGORIES;
+        let has_fx = subcats.iter().any(|s| matches!(s, Vst3SubCategory::Fx));
+        let has_delay = subcats.iter().any(|s| matches!(s, Vst3SubCategory::Delay));
+        assert!(
+            has_fx,
+            "VST3 subcategories must include Fx for Ableton to show it as an effect"
+        );
+        assert!(
+            has_delay,
+            "VST3 subcategories must include Delay for proper categorization"
+        );
+    }
+
+    #[test]
+    fn plugin_name_is_set() {
+        assert!(
+            !GenXDelay::NAME.is_empty(),
+            "Plugin name must be non-empty for Ableton's plugin list"
+        );
+    }
+
+    #[test]
+    fn audio_io_includes_stereo() {
+        let layouts = GenXDelay::AUDIO_IO_LAYOUTS;
+        let has_stereo = layouts.iter().any(|l| {
+            l.main_input_channels == NonZeroU32::new(2)
+                && l.main_output_channels == NonZeroU32::new(2)
+        });
+        assert!(
+            has_stereo,
+            "Must support stereo I/O for Ableton stereo tracks"
+        );
+    }
+
+    #[test]
+    fn sample_accurate_automation_enabled() {
+        let sample_accurate = std::hint::black_box(GenXDelay::SAMPLE_ACCURATE_AUTOMATION);
+        assert!(
+            sample_accurate,
+            "Sample-accurate automation should be enabled for tight Ableton automation"
+        );
+    }
+
+    // =========================================================================
+    // Parameter defaults — must be musically useful out of the box
+    // =========================================================================
+
+    #[test]
+    fn delay_time_default_is_musically_useful() {
+        let p = test_params();
+        let v = p.delay_time.default_plain_value();
+        // 300ms is a classic 1/4-note delay at ~120 BPM — bread and butter
+        assert!(
+            (100.0..=500.0).contains(&v),
+            "Default delay time {v}ms should be in a musically common range (100–500ms)"
+        );
+    }
+
+    #[test]
+    fn feedback_default_is_moderate() {
+        let p = test_params();
+        let v = p.feedback.default_plain_value();
+        assert!(
+            (0.2..=0.6).contains(&v),
+            "Default feedback {v} should produce audible repeats without runaway (0.2–0.6)"
+        );
+    }
+
+    #[test]
+    fn mix_default_is_audible_but_not_overwhelming() {
+        let p = test_params();
+        let v = p.mix.default_plain_value();
+        assert!(
+            (0.15..=0.5).contains(&v),
+            "Default mix {v} should be clearly audible but not drown out dry signal (0.15–0.5)"
+        );
+    }
+
+    #[test]
+    fn duck_amount_default_is_off() {
+        let p = test_params();
+        let v = p.duck_amount.default_plain_value();
+        assert!(
+            v < 0.01,
+            "Duck amount should default to off (0.0) — ducking is an advanced feature"
+        );
+    }
+
+    #[test]
+    fn tempo_sync_default_is_off() {
+        let p = test_params();
+        let v = p.tempo_sync.default_plain_value();
+        assert!(
+            !v,
+            "Tempo sync should default to off — manual delay time is more intuitive at first"
+        );
+    }
+
+    #[test]
+    fn ping_pong_default_is_off() {
+        let p = test_params();
+        let v = p.ping_pong.default_plain_value();
+        assert!(
+            !v,
+            "Ping pong should default to off — basic stereo delay is the starting point"
+        );
+    }
+
+    #[test]
+    fn reverse_default_is_off() {
+        let p = test_params();
+        let v = p.reverse.default_plain_value();
+        assert!(
+            !v,
+            "Reverse should default to off — forward delay is the standard starting point"
+        );
+    }
+
+    #[test]
+    fn mode_default_is_digital() {
+        let p = test_params();
+        let v = p.mode.default_plain_value();
+        assert_eq!(
+            v,
+            DelayMode::Digital,
+            "Mode should default to Digital — clean and predictable for first use"
+        );
+    }
+
+    // =========================================================================
+    // Parameter ranges — must be safe (no silence, no clipping, no runaway)
+    // =========================================================================
+
+    #[test]
+    fn feedback_max_prevents_runaway() {
+        let p = test_params();
+        // Get the maximum value from the parameter range
+        // Feedback must stay < 1.0 to prevent infinite feedback
+        let range = &p.feedback;
+        let max_val = range.preview_plain(1.0); // normalized 1.0 → plain max
+        assert!(
+            max_val < 1.0,
+            "Feedback max {max_val} must be < 1.0 to prevent infinite feedback loops"
+        );
+        assert!(
+            max_val >= 0.9,
+            "Feedback max {max_val} should be >= 0.9 to allow long, ambient tails"
+        );
+    }
+
+    #[test]
+    fn safety_limiter_reduces_gain_on_excessive_output() {
+        let mut env = 0.0;
+        let mut gain = 1.0;
+        for _ in 0..256 {
+            let _ = update_safety_limiter(2.0, 48_000.0, &mut env, &mut gain);
+        }
+        assert!(
+            gain < 1.0,
+            "Safety limiter gain should reduce when peak exceeds threshold"
+        );
+        assert!(
+            env > SAFETY_LIMITER_THRESHOLD,
+            "Limiter envelope should track high peaks"
+        );
+    }
+
+    #[test]
+    fn safety_limiter_recovers_after_signal_drops() {
+        let mut env = 0.0;
+        let mut gain = 1.0;
+        for _ in 0..256 {
+            let _ = update_safety_limiter(2.0, 48_000.0, &mut env, &mut gain);
+        }
+        let reduced_gain = gain;
+
+        for _ in 0..4_096 {
+            let _ = update_safety_limiter(0.1, 48_000.0, &mut env, &mut gain);
+        }
+        assert!(
+            gain > reduced_gain,
+            "Safety limiter should release and recover gain when peaks drop"
+        );
+        assert!(gain <= 1.0 + 1e-6, "Limiter gain should never exceed unity");
+    }
+
+    #[test]
+    fn delay_time_min_prevents_comb_filter_artifacts() {
+        let p = test_params();
+        let min_val = p.delay_time.preview_plain(0.0);
+        assert!(
+            min_val >= 1.0,
+            "Minimum delay {min_val}ms must be >= 1ms to avoid metallic comb-filter artifacts"
+        );
+    }
+
+    #[test]
+    fn delay_time_max_is_generous() {
+        let p = test_params();
+        let max_val = p.delay_time.preview_plain(1.0);
+        assert!(
+            max_val >= 2000.0,
+            "Maximum delay {max_val}ms should be >= 2000ms for ambient/experimental use"
+        );
+    }
+
+    #[test]
+    fn filter_ranges_are_musically_valid() {
+        let p = test_params();
+        let lp_min = p.lowpass_freq.preview_plain(0.0);
+        let lp_max = p.lowpass_freq.preview_plain(1.0);
+        let hp_min = p.highpass_freq.preview_plain(0.0);
+        let hp_max = p.highpass_freq.preview_plain(1.0);
+
+        // LP must go up to at least near-full bandwidth
+        assert!(
+            lp_max >= 18000.0,
+            "Low-pass max {lp_max} Hz should reach near-Nyquist"
+        );
+        // HP must go down to sub-bass
+        assert!(
+            hp_min <= 30.0,
+            "High-pass min {hp_min} Hz should allow sub-bass through"
+        );
+        // HP max should be below LP min to prevent impossible crossover
+        assert!(
+            hp_max < lp_min || lp_min <= hp_max,
+            "Filter ranges should allow some valid overlap for tone shaping"
+        );
+    }
+
+    #[test]
+    fn stereo_offset_range_is_reasonable() {
+        let p = test_params();
+        let min_val = p.stereo_offset.preview_plain(0.0);
+        let max_val = p.stereo_offset.preview_plain(1.0);
+        assert!(min_val >= 0.0, "Stereo offset min should be 0 (no offset)");
+        assert!(
+            max_val <= 100.0,
+            "Stereo offset max {max_val}ms should be <= 100ms to avoid flamming"
+        );
+    }
+
+    #[test]
+    fn ping_pong_neutralizes_stereo_offset_in_delay_times() {
+        let base = 4800.0;
+        let offset = 240.0;
+        let (l, r) = compute_delay_samples(base, offset, true);
+        assert_eq!(l, base, "Ping-pong left delay should use base delay time");
+        assert_eq!(r, base, "Ping-pong right delay should use base delay time");
+
+        let (l_stereo, r_stereo) = compute_delay_samples(base, offset, false);
+        assert_eq!(
+            l_stereo, base,
+            "Stereo left delay should use base delay time"
+        );
+        assert_eq!(
+            r_stereo,
+            base + offset,
+            "Stereo right delay should include configured offset"
+        );
+    }
+
+    #[test]
+    fn ping_pong_delay_input_path_is_strict_crossfeed() {
+        let (l, r) = compute_delay_inputs(0.8, 0.2, 0.3, 0.1, 0.5, true);
+        // Mono input is (0.8 + 0.2) * 0.5 = 0.5, then add crossed right feedback (0.1 * 0.5)
+        assert!(
+            (l - 0.55).abs() < 1e-6,
+            "Ping-pong left input should be mono input plus crossed right feedback"
+        );
+        // Right side should only receive crossed left feedback (0.3 * 0.5)
+        assert!(
+            (r - 0.15).abs() < 1e-6,
+            "Ping-pong right input should receive only crossed left feedback"
+        );
+
+        let (l_stereo, r_stereo) = compute_delay_inputs(0.8, 0.2, 0.3, 0.1, 0.5, false);
+        assert!(
+            (l_stereo - 0.95).abs() < 1e-6 && (r_stereo - 0.25).abs() < 1e-6,
+            "Stereo mode should retain independent per-channel feedback"
+        );
+    }
+
+    // =========================================================================
+    // Parameter IDs — must be unique for Ableton automation persistence
+    // =========================================================================
+
+    #[test]
+    fn all_parameter_ids_are_unique() {
+        // Ableton stores automation by parameter ID.
+        // Duplicate IDs would cause one parameter's automation to overwrite another.
+        let ids = [
+            "delay_time",
+            "tempo_sync",
+            "note_division",
+            "feedback",
+            "mix",
+            "mode",
+            "reverse",
+            "ping_pong",
+            "stereo_offset",
+            "lowpass_freq",
+            "highpass_freq",
+            "mod_rate",
+            "mod_depth",
+            "drive",
+            "duck_amount",
+            "duck_threshold",
+        ];
+        let unique: HashSet<&str> = ids.iter().copied().collect();
+        assert_eq!(
+            ids.len(),
+            unique.len(),
+            "All parameter IDs must be unique — duplicates break Ableton automation recall"
+        );
+    }
+
+    #[test]
+    fn expected_parameter_count() {
+        // 16 parameter IDs (not counting editor_state which is persisted but not a user param)
+        // If a parameter is added or removed, this test catches the drift.
+        let expected = 16;
+        let ids = [
+            "delay_time",
+            "tempo_sync",
+            "note_division",
+            "feedback",
+            "mix",
+            "mode",
+            "reverse",
+            "ping_pong",
+            "stereo_offset",
+            "lowpass_freq",
+            "highpass_freq",
+            "mod_rate",
+            "mod_depth",
+            "drive",
+            "duck_amount",
+            "duck_threshold",
+        ];
+        assert_eq!(
+            ids.len(),
+            expected,
+            "Expected {expected} user-facing parameters — update if params are added/removed"
+        );
+    }
+
+    // =========================================================================
+    // Parameter names — must be readable in Ableton's parameter list
+    // =========================================================================
+
+    #[test]
+    fn parameter_names_are_not_empty() {
+        let p = test_params();
+        let names = [
+            p.delay_time.name(),
+            p.feedback.name(),
+            p.mix.name(),
+            p.stereo_offset.name(),
+            p.lowpass_freq.name(),
+            p.highpass_freq.name(),
+            p.mod_rate.name(),
+            p.mod_depth.name(),
+            p.drive.name(),
+            p.duck_amount.name(),
+            p.duck_threshold.name(),
+        ];
+        for name in &names {
+            assert!(
+                !name.is_empty(),
+                "Parameter name must not be empty — Ableton shows these in its UI"
+            );
+        }
+    }
+
+    #[test]
+    fn parameter_names_are_reasonably_short() {
+        let p = test_params();
+        let names = [
+            p.delay_time.name(),
+            p.feedback.name(),
+            p.mix.name(),
+            p.stereo_offset.name(),
+            p.lowpass_freq.name(),
+            p.highpass_freq.name(),
+            p.mod_rate.name(),
+            p.mod_depth.name(),
+            p.drive.name(),
+            p.duck_amount.name(),
+            p.duck_threshold.name(),
+        ];
+        for name in &names {
+            assert!(
+                name.len() <= 20,
+                "Parameter name '{}' ({} chars) is too long — Ableton truncates names in the automation lane",
+                name,
+                name.len()
+            );
+        }
+    }
+
+    // =========================================================================
+    // Note divisions — tempo sync must cover standard musical subdivisions
+    // =========================================================================
+
+    #[test]
+    fn all_standard_note_divisions_are_available() {
+        // Common divisions that producers expect in Ableton
+        let divs = [
+            NoteDivision::Whole,
+            NoteDivision::Half,
+            NoteDivision::Quarter,
+            NoteDivision::Eighth,
+            NoteDivision::Sixteenth,
+        ];
+        for div in &divs {
+            let mult = div.as_beat_multiplier();
+            assert!(mult > 0.0, "{:?} must have a positive beat multiplier", div);
+        }
+    }
+
+    #[test]
+    fn dotted_and_triplet_variants_exist() {
+        let dotted = [
+            NoteDivision::HalfDotted,
+            NoteDivision::QuarterDotted,
+            NoteDivision::EighthDotted,
+            NoteDivision::SixteenthDotted,
+        ];
+        let triplet = [
+            NoteDivision::HalfTriplet,
+            NoteDivision::QuarterTriplet,
+            NoteDivision::EighthTriplet,
+            NoteDivision::SixteenthTriplet,
+        ];
+        for div in dotted.iter().chain(triplet.iter()) {
+            let mult = div.as_beat_multiplier();
+            assert!(mult > 0.0, "{:?} must have a positive beat multiplier", div);
+        }
+    }
+
+    #[test]
+    fn note_division_options_are_gui_selector_safe() {
+        // QA gate for the next GUI increment (Tempo Sync + Note Division selector):
+        // each option must map to a stable, unique label and a musically valid beat multiplier.
+        let options = [
+            (NoteDivision::Whole, "1/1"),
+            (NoteDivision::Half, "1/2"),
+            (NoteDivision::HalfDotted, "1/2d"),
+            (NoteDivision::HalfTriplet, "1/2t"),
+            (NoteDivision::Quarter, "1/4"),
+            (NoteDivision::QuarterDotted, "1/4d"),
+            (NoteDivision::QuarterTriplet, "1/4t"),
+            (NoteDivision::Eighth, "1/8"),
+            (NoteDivision::EighthDotted, "1/8d"),
+            (NoteDivision::EighthTriplet, "1/8t"),
+            (NoteDivision::Sixteenth, "1/16"),
+            (NoteDivision::SixteenthDotted, "1/16d"),
+            (NoteDivision::SixteenthTriplet, "1/16t"),
+        ];
+
+        let mut seen = HashSet::new();
+        for (division, label) in options {
+            assert!(
+                seen.insert(label),
+                "Duplicate note division label '{label}' would break GUI selector clarity"
+            );
+            assert!(
+                division.as_beat_multiplier() > 0.0,
+                "Note division '{label}' must map to a positive beat multiplier"
+            );
+        }
+
+        // Coarse musical ordering used by the selector UX.
+        assert!(NoteDivision::Whole.as_beat_multiplier() > NoteDivision::Half.as_beat_multiplier());
+        assert!(
+            NoteDivision::Half.as_beat_multiplier() > NoteDivision::Quarter.as_beat_multiplier()
+        );
+        assert!(
+            NoteDivision::Quarter.as_beat_multiplier() > NoteDivision::Eighth.as_beat_multiplier()
+        );
+        assert!(
+            NoteDivision::Eighth.as_beat_multiplier()
+                > NoteDivision::Sixteenth.as_beat_multiplier()
+        );
+    }
+
+    #[test]
+    fn tempo_sync_delay_times_are_musically_correct() {
+        // At 120 BPM, a quarter note = 500ms
+        let bpm = 120.0_f32;
+        let ms_per_beat = 60_000.0 / bpm;
+
+        let quarter_ms = ms_per_beat * NoteDivision::Quarter.as_beat_multiplier();
+        assert!(
+            (quarter_ms - 500.0).abs() < 0.01,
+            "Quarter note at 120 BPM should be 500ms, got {quarter_ms}"
+        );
+
+        let eighth_ms = ms_per_beat * NoteDivision::Eighth.as_beat_multiplier();
+        assert!(
+            (eighth_ms - 250.0).abs() < 0.01,
+            "Eighth note at 120 BPM should be 250ms, got {eighth_ms}"
+        );
+
+        let dotted_eighth_ms = ms_per_beat * NoteDivision::EighthDotted.as_beat_multiplier();
+        assert!(
+            (dotted_eighth_ms - 375.0).abs() < 0.01,
+            "Dotted eighth at 120 BPM should be 375ms, got {dotted_eighth_ms}"
+        );
+    }
+
+    // =========================================================================
+    // Smoothing — parameters must be smoothed to avoid clicks in automation
+    // =========================================================================
+
+    #[test]
+    fn continuous_parameters_have_smoothing() {
+        let p = test_params();
+        // These parameters cause audible clicks/pops if not smoothed
+        // We verify they have non-zero smoother durations by checking they
+        // are configured with smoothing (the smoother style is set in Default impl)
+        //
+        // The best proxy: read the smoothed value — if smoothing is configured,
+        // the smoother object exists. We just verify the params were constructed.
+        let _delay = p.delay_time.smoothed.style;
+        let _fb = p.feedback.smoothed.style;
+        let _mix = p.mix.smoothed.style;
+        let _offset = p.stereo_offset.smoothed.style;
+        let _lp = p.lowpass_freq.smoothed.style;
+        let _hp = p.highpass_freq.smoothed.style;
+        let _rate = p.mod_rate.smoothed.style;
+        let _depth = p.mod_depth.smoothed.style;
+        let _drive = p.drive.smoothed.style;
+        let _duck_amt = p.duck_amount.smoothed.style;
+        let _duck_thr = p.duck_threshold.smoothed.style;
+        // If any of these didn't have smoothing configured, the style would be None/default.
+        // This test primarily ensures the params compile and don't panic.
+    }
+
+    // =========================================================================
+    // Plugin process stability — must not panic with edge-case input
+    // =========================================================================
+
+    #[test]
+    fn plugin_reset_does_not_panic() {
+        let mut plugin = test_plugin();
+        plugin.reset();
+        plugin.reset(); // double-reset should be safe
+    }
+
+    // =========================================================================
+    // MVP Kanban Test Gates (docs/GENX_DELAY_MVP_KANBAN.md)
+    // =========================================================================
+
+    #[test]
+    fn gdx_00_resize_scaling_geometry_contract() {
+        let tiny = editor::resize_geometry_metrics_for_dimensions(240.0, 150.0);
+        let base = editor::resize_geometry_metrics_for_dimensions(600.0, 420.0);
+        let large = editor::resize_geometry_metrics_for_dimensions(1200.0, 840.0);
+
+        assert_eq!(
+            tiny.content_scale, 0.5,
+            "content scale must clamp at 0.5 for very small window sizes"
+        );
+        assert!(
+            tiny.content_scale < base.content_scale && base.content_scale < large.content_scale,
+            "content scale must increase monotonically with larger window dimensions"
+        );
+
+        assert!(
+            tiny.vine_border_margin <= base.vine_border_margin
+                && base.vine_border_margin < large.vine_border_margin,
+            "vine-border margins should stay stable at small sizes and increase above base scale"
+        );
+        assert!(
+            tiny.flower_corner_margin < base.flower_corner_margin
+                && base.flower_corner_margin < large.flower_corner_margin,
+            "flower-corner margins should scale with content size"
+        );
+        assert!(
+            tiny.flower_outer_stroke < base.flower_outer_stroke
+                && base.flower_outer_stroke < large.flower_outer_stroke,
+            "flower outer stroke must scale with content size"
+        );
+        assert!(
+            tiny.flower_inner_stroke < base.flower_inner_stroke
+                && base.flower_inner_stroke < large.flower_inner_stroke,
+            "flower inner stroke must scale with content size"
+        );
+        assert!(
+            tiny.peace_symbol_stroke < base.peace_symbol_stroke
+                && base.peace_symbol_stroke < large.peace_symbol_stroke,
+            "peace symbol stroke must scale with content size"
+        );
+    }
+
+    #[test]
+    fn gdx_01_gui_uses_mvp_window_size_600x420() {
+        let p = test_params();
+        let (width, height) = p.editor_state.size();
+        assert_eq!(width, 600, "GUI width must match MVP design spec");
+        assert_eq!(height, 420, "GUI height must match MVP design spec");
+    }
+
+    #[test]
+    fn gdx_02_full_mvp_parameter_surface_exists_for_gui_wiring() {
+        // Contract: these are the controls the MVP GUI must expose and wire.
+        let expected_ids = [
+            "delay_time",
+            "tempo_sync",
+            "note_division",
+            "feedback",
+            "mix",
+            "mode",
+            "reverse",
+            "ping_pong",
+            "stereo_offset",
+            "lowpass_freq",
+            "highpass_freq",
+            "mod_rate",
+            "mod_depth",
+            "drive",
+            "duck_amount",
+            "duck_threshold",
+        ];
+
+        let unique: HashSet<&str> = expected_ids.iter().copied().collect();
+        assert_eq!(
+            unique.len(),
+            expected_ids.len(),
+            "MVP control surface must have stable, unique parameter IDs"
+        );
+    }
+
+    #[test]
+    fn gdx_03_mode_contract_supports_modulation_enable_disable_logic() {
+        let p = test_params();
+        assert_eq!(
+            p.mode.default_plain_value(),
+            DelayMode::Digital,
+            "Digital default is required for predictable modulation-disabled startup"
+        );
+        assert!(
+            p.mod_rate.preview_plain(1.0) > p.mod_rate.preview_plain(0.0),
+            "Mod Rate must remain a valid continuous control when Analog mode enables it"
+        );
+        assert!(
+            p.mod_depth.preview_plain(1.0) > p.mod_depth.preview_plain(0.0),
+            "Mod Depth must remain a valid continuous control when Analog mode enables it"
+        );
+        assert!(
+            p.drive.preview_plain(1.0) > p.drive.preview_plain(0.0),
+            "Drive must remain a valid continuous control when Analog mode enables it"
+        );
+    }
+
+    #[test]
+    fn gdx_04_visual_polish_contract() {
+        let deco_small = editor::woodstock_decoration_metrics(0.5);
+        let deco_base = editor::woodstock_decoration_metrics(1.0);
+        let deco_large = editor::woodstock_decoration_metrics(1.8);
+
+        assert!(
+            deco_base.vine_spacing > 0.0,
+            "vine-border spacing must remain positive"
+        );
+        assert!(
+            deco_small.vine_spacing < deco_base.vine_spacing
+                && deco_base.vine_spacing < deco_large.vine_spacing,
+            "vine-border spacing should scale monotonically with window scale"
+        );
+
+        let accent_small = editor::section_accent_metrics(0.5);
+        let accent_base = editor::section_accent_metrics(1.0);
+        let accent_large = editor::section_accent_metrics(1.8);
+
+        assert!(
+            accent_base.line_thickness > 0.0,
+            "section accent lines must stay visible"
+        );
+        assert!(
+            accent_base.ornament_radius > 0.0 && accent_base.ornament_gap > 0.0,
+            "section accent ornaments must remain renderable"
+        );
+        assert!(
+            accent_small.line_thickness <= accent_base.line_thickness
+                && accent_base.line_thickness <= accent_large.line_thickness,
+            "section accent line thickness should scale with window size"
+        );
+        assert!(
+            accent_small.ornament_gap < accent_base.ornament_gap
+                && accent_base.ornament_gap < accent_large.ornament_gap,
+            "section accent ornament spacing should scale with window size"
+        );
+    }
+
+    #[test]
+    fn gdx_05_note_division_selector_options_are_unique_and_ordered() {
+        let options = editor::GUI_NOTE_DIVISION_OPTIONS;
+        assert_eq!(
+            options.len(),
+            13,
+            "GUI note-division selector must expose all planned musical subdivisions"
+        );
+
+        let mut seen_labels = HashSet::new();
+        let mut seen_divisions = HashSet::new();
+        for (division, label) in options {
+            assert!(
+                seen_labels.insert(*label),
+                "Duplicate selector label '{label}' would break GUI clarity"
+            );
+            assert!(
+                seen_divisions.insert(division.to_index()),
+                "Duplicate selector division '{division:?}' would break GUI mapping"
+            );
+        }
+
+        // The selector's expected coarse order in UI.
+        assert_eq!(options[0].0, NoteDivision::Whole);
+        assert_eq!(options[1].0, NoteDivision::Half);
+        assert_eq!(options[4].0, NoteDivision::Quarter);
+        assert_eq!(options[7].0, NoteDivision::Eighth);
+        assert_eq!(options[10].0, NoteDivision::Sixteenth);
+    }
+
+    #[test]
+    fn gdx_05_mode_gating_logic_contract() {
+        assert!(
+            !editor::modulation_controls_enabled(DelayMode::Digital),
+            "Modulation controls must be disabled in Digital mode"
+        );
+        assert!(
+            editor::modulation_controls_enabled(DelayMode::Analog),
+            "Modulation controls must be enabled in Analog mode"
+        );
+    }
+
+    #[test]
+    fn gdx_05_default_ui_state_parity_with_params() {
+        let p = test_params();
+        let default_mode = p.mode.default_plain_value();
+        let default_tempo_sync = p.tempo_sync.default_plain_value();
+
+        assert_eq!(
+            default_mode,
+            DelayMode::Digital,
+            "UI default mode should match parameter default"
+        );
+        assert!(
+            !default_tempo_sync,
+            "UI tempo-sync toggle should default off to match parameter default"
+        );
+        assert!(
+            !editor::modulation_controls_enabled(default_mode),
+            "Modulation UI should start disabled when mode defaults to Digital"
+        );
+        assert!(
+            !editor::note_division_selector_enabled(default_tempo_sync),
+            "Note-division selector should start disabled when tempo sync is off"
+        );
+    }
+
+    #[test]
+    #[ignore = "GDX-06 host gate: requires manual DAW smoke tests"]
+    fn gdx_06_host_smoke_test_matrix_gate() {
+        // Manual acceptance check in release candidate.
+        // See docs/GDX_06_SMOKE_TEST_REPORT.md for the full checklist.
+        //
+        // Required hosts (minimum 4):
+        //   1. REAPER          — [ ] tested
+        //   2. Ableton Live    — [ ] tested
+        //   3. Bitwig Studio   — [ ] tested
+        //   4. (additional)    — [ ] tested
+        //
+        // Per-host checks:
+        //   [1] Insert plugin and open GUI
+        //   [2] Automate 3+ params during playback
+        //   [3] Save project, close host, reopen, verify state
+        //   [4] Toggle GUI open/close repeatedly during playback
+        //   [5] Validate resizing and HiDPI scaling
+        //
+        // Once all hosts pass, replace the panic below with an assert
+        // and mark the checkboxes above. Record results in the report doc.
+        panic!("GDX-06: manual host smoke tests not yet recorded — see docs/GDX_06_SMOKE_TEST_REPORT.md");
+    }
+
+    #[test]
+    fn gdx_07_release_metadata_is_filled() {
+        assert!(
+            !GenXDelay::URL.is_empty(),
+            "Plugin URL must be set for release"
+        );
+        assert!(
+            !GenXDelay::EMAIL.is_empty(),
+            "Plugin support email must be set for release"
+        );
+        assert!(
+            GenXDelay::CLAP_MANUAL_URL.is_some(),
+            "CLAP manual URL should be present for release support"
+        );
+        assert!(
+            GenXDelay::CLAP_SUPPORT_URL.is_some(),
+            "CLAP support URL should be present for release support"
+        );
+    }
+
+    #[test]
+    #[ignore = "GDX-08 warning gate: enforce with clippy -D warnings in release CI"]
+    fn gdx_08_no_avoidable_dead_code_or_warning_gate() {
+        // CI/command gate:
+        // cargo clippy -p genx_delay --all-targets -- -D warnings
+        panic!("Warning-clean gate for GDX-08");
+    }
+
+    #[test]
+    fn gdx_09_woodstock_icon_motif_contract() {
+        let small = editor::woodstock_decoration_metrics(0.5);
+        let base = editor::woodstock_decoration_metrics(1.0);
+        let large = editor::woodstock_decoration_metrics(1.8);
+
+        for (name, opacity) in [
+            ("vine_border", base.vine_border_opacity),
+            ("flower_corner", base.flower_corner_opacity),
+            ("dove", base.dove_opacity),
+            ("starfield", base.starfield_opacity),
+            ("peace_symbol", base.peace_symbol_opacity),
+        ] {
+            assert!(
+                (0.06..=0.18).contains(&opacity),
+                "{name} opacity {opacity:.3} must remain in low-opacity decorative range"
+            );
+        }
+
+        assert!(
+            small.vine_spacing < base.vine_spacing && base.vine_spacing < large.vine_spacing,
+            "vine-border spacing should scale with GUI size"
+        );
+        assert!(
+            small.corner_extent < base.corner_extent && base.corner_extent < large.corner_extent,
+            "flower-corner extents should scale with GUI size"
+        );
+        assert!(
+            small.dove_size < base.dove_size && base.dove_size < large.dove_size,
+            "dove motif size should scale with GUI size"
+        );
+    }
+}

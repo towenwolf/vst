@@ -50,7 +50,11 @@ impl FftProcessor {
 
         // Perform FFT
         self.fft
-            .process_with_scratch(&mut self.input_buffer, &mut self.output_buffer, &mut self.scratch)
+            .process_with_scratch(
+                &mut self.input_buffer,
+                &mut self.output_buffer,
+                &mut self.scratch,
+            )
             .expect("FFT processing failed");
 
         // Compute magnitude spectrum (reuse input_buffer for output)

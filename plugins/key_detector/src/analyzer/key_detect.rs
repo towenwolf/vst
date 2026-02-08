@@ -174,7 +174,11 @@ mod tests {
                 "Should detect root {} for rotation {}",
                 expected_root, expected_root
             );
-            assert!(result.is_major, "Should detect major for root {}", expected_root);
+            assert!(
+                result.is_major,
+                "Should detect major for root {}",
+                expected_root
+            );
         }
     }
 
@@ -210,7 +214,11 @@ mod tests {
         // First detect C major with perfect correlation
         let c_major = MAJOR_PROFILE;
         detector.update(&c_major);
-        assert_eq!(detector.current().root, 0, "Should detect C major initially");
+        assert_eq!(
+            detector.current().root,
+            0,
+            "Should detect C major initially"
+        );
 
         // Feed G major - same correlation, so shouldn't switch (not significantly better)
         let g_major = rotate_profile(&MAJOR_PROFILE, 7);

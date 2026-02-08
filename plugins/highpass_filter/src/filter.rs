@@ -115,13 +115,7 @@ pub struct FilterChain {
 
 impl FilterChain {
     /// Update filter coefficients based on current parameters
-    pub fn update_coefficients(
-        &mut self,
-        sample_rate: f32,
-        freq: f32,
-        q: f32,
-        slope: FilterSlope,
-    ) {
+    pub fn update_coefficients(&mut self, sample_rate: f32, freq: f32, q: f32, slope: FilterSlope) {
         match slope {
             FilterSlope::Slope6dB => {
                 self.first_order.set_highpass(sample_rate, freq);

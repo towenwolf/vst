@@ -27,7 +27,7 @@ This backlog translates `docs/COMMERCE_PLAN.md` into a sequential execution list
 - `webhook_events`
 - Add seed/test fixtures.
 
-5. Configure Stripe in test mode
+5. ~~Configure Stripe in test mode~~
 - Create Stripe Product + one-time Price.
 - Configure API keys/webhook secret.
 - Document Stripe setup steps for contributors.

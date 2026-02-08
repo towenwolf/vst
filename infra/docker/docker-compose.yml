@@ -30,7 +30,10 @@ services:
       - PORT=3001
       - DATABASE_URL=postgresql://${POSTGRES_USER:-commerce}:${POSTGRES_PASSWORD:-commerce}@postgres:5432/${POSTGRES_DB:-commerce}
       - STRIPE_API_KEY=${STRIPE_API_KEY:-}
+      - STRIPE_MODE=${STRIPE_MODE:-mock}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PRODUCT_ID=${STRIPE_PRODUCT_ID:-}
+      - STRIPE_PRICE_ID=${STRIPE_PRICE_ID:-}
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-maildev}
       - MAILDEV_SMTP_HOST=maildev
       - MAILDEV_SMTP_PORT=1025

@@ -40,6 +40,22 @@ This runbook is the onboarding guide for the local commerce stack.
   - `infra/docker/scripts/db-migrate.sh`
   - `infra/docker/scripts/db-seed.sh`
 
+## Task 5 Deliverables (Completed)
+
+- Stripe setup helper script:
+  - `infra/docker/scripts/stripe-setup-test-mode.sh`
+- Stripe env template additions:
+  - `STRIPE_MODE`
+  - `STRIPE_PRODUCT_ID`
+  - `STRIPE_PRICE_ID`
+  - `STRIPE_PRODUCT_NAME`
+  - `STRIPE_PRODUCT_DESCRIPTION`
+  - `STRIPE_PRODUCT_SKU`
+  - `STRIPE_PRICE_UNIT_AMOUNT`
+  - `STRIPE_PRICE_CURRENCY`
+- Compose wiring for API Stripe runtime config:
+  - `infra/docker/docker-compose.yml`
+
 ## Local Usage
 
 1. Create local env:
@@ -62,13 +78,29 @@ infra/docker/scripts/db-migrate.sh
 infra/docker/scripts/db-seed.sh
 ```
 
-4. Inspect logs:
+4. Configure Stripe test mode:
+
+```bash
+# no Stripe account required:
+STRIPE_MODE=mock
+infra/docker/scripts/stripe-setup-test-mode.sh
+
+# optional when a real Stripe test account exists:
+STRIPE_MODE=test
+STRIPE_API_KEY=sk_test_...
+infra/docker/scripts/stripe-setup-test-mode.sh
+
+# then capture webhook signing secret and set STRIPE_WEBHOOK_SECRET in infra/docker/.env
+stripe listen --forward-to localhost:3001/webhooks/stripe --print-secret
+```
+
+5. Inspect logs:
 
 ```bash
 infra/docker/scripts/logs.sh
 ```
 
-5. Stop stack:
+6. Stop stack:
 
 ```bash
 infra/docker/scripts/down.sh
@@ -84,5 +116,5 @@ infra/docker/scripts/down.sh
 
 ## Next Backlog Step
 
-Per `docs/COMMERCE_BACKLOG.md`, move to task 5:
-- Configure Stripe product/price in test mode and wire contributor setup instructions.
+Per `docs/COMMERCE_BACKLOG.md`, move to task 6:
+- Build checkout endpoint (`POST /checkout`).

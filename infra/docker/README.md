@@ -1,4 +1,4 @@
-# Docker Infrastructure (Task 3 + Task 4)
+# Docker Infrastructure (Task 3 + Task 4 + Task 5)
 
 This folder contains local commerce stack infrastructure for development/testing.
 
@@ -12,6 +12,7 @@ This folder contains local commerce stack infrastructure for development/testing
 - `scripts/db-reset.sh` — reset DB schema
 - `scripts/db-migrate.sh` — apply migrations
 - `scripts/db-seed.sh` — load seed fixtures
+- `scripts/stripe-setup-test-mode.sh` — configure Stripe in `mock` (no account) or `test` (real Stripe) mode
 
 ## Local Services
 
@@ -29,15 +30,34 @@ This folder contains local commerce stack infrastructure for development/testing
 cp infra/docker/.env.example infra/docker/.env
 ```
 
-2. (Optional) set Stripe keys in `infra/docker/.env`.
+2. Configure Stripe mode in `infra/docker/.env`:
 
-3. Start stack:
+```bash
+STRIPE_MODE=mock
+```
+
+3. Run Stripe setup helper:
+
+```bash
+infra/docker/scripts/stripe-setup-test-mode.sh
+```
+
+4. Optional real Stripe setup (only when you have an account):
+
+```bash
+STRIPE_MODE=test
+STRIPE_API_KEY=sk_test_...
+infra/docker/scripts/stripe-setup-test-mode.sh
+stripe listen --forward-to localhost:3001/webhooks/stripe --print-secret
+```
+
+5. Start stack:
 
 ```bash
 infra/docker/scripts/up.sh
 ```
 
-4. Initialize database:
+6. Initialize database:
 
 ```bash
 infra/docker/scripts/db-reset.sh
@@ -45,13 +65,13 @@ infra/docker/scripts/db-migrate.sh
 infra/docker/scripts/db-seed.sh
 ```
 
-5. Tail logs:
+7. Tail logs:
 
 ```bash
 infra/docker/scripts/logs.sh
 ```
 
-6. Stop stack:
+8. Stop stack:
 
 ```bash
 infra/docker/scripts/down.sh
@@ -60,4 +80,5 @@ infra/docker/scripts/down.sh
 ## Notes
 
 - `web` and `api` currently run as scaffold placeholders (`tail -f /dev/null`) until app implementation tasks are completed.
-- `stripe-cli` will idle if `STRIPE_API_KEY` is not set.
+- `stripe-cli` will idle unless `STRIPE_API_KEY` is set.
+- API Stripe config is sourced from `STRIPE_MODE`, `STRIPE_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRODUCT_ID`, `STRIPE_PRICE_ID`.

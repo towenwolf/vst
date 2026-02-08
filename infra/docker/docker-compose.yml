@@ -20,7 +20,7 @@ services:
     image: node:20-alpine
     container_name: commerce-api
     working_dir: /workspace/apps/api
-    command: ["node", "src/server.js"]
+    command: ["sh", "-lc", "npm install --no-audit --no-fund && node src/server.js"]
     volumes:
       - ../../apps/api:/workspace/apps/api
     ports:

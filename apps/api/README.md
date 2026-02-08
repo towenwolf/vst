@@ -5,10 +5,22 @@ This folder will contain the commerce backend (`api`) for GenX Delay.
 Implemented endpoints:
 - `GET /health`
 - `POST /checkout`
+- `POST /webhooks/stripe`
 
 `POST /checkout` behavior:
 - `STRIPE_MODE=mock`: returns a deterministic mock checkout session payload without Stripe account access.
 - `STRIPE_MODE=test`: creates a real Stripe Checkout Session in test mode.
+
+`POST /webhooks/stripe` behavior:
+- Verifies webhook signature:
+  - `STRIPE_MODE=mock`: validate `x-mock-signature` as `HMAC_SHA256(raw_body, STRIPE_WEBHOOK_SECRET)`
+  - `STRIPE_MODE=test`: validate `Stripe-Signature` (`t=...,v1=...`) against `STRIPE_WEBHOOK_SECRET`
+- Enforces idempotency with `webhook_events.stripe_event_id` unique constraint.
+- Persists event processing status (`processed`, `ignored`, `failed`) in `webhook_events`.
+- Persists order/payment state updates for:
+  - `checkout.session.completed`
+  - `payment_intent.payment_failed`
+  - `charge.refunded`
 
 Request example:
 

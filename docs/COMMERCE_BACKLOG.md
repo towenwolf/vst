@@ -37,7 +37,7 @@ This backlog translates `docs/COMMERCE_PLAN.md` into a sequential execution list
 - Create Stripe Checkout Session for guest purchase flow.
 - Attach metadata required for fulfillment.
 
-7. Build webhook fulfillment endpoint
+7. ~~Build webhook fulfillment endpoint~~
 - Implement `POST /webhooks/stripe`.
 - Verify webhook signatures.
 - Enforce idempotent event processing.

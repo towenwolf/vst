@@ -67,6 +67,20 @@ This runbook is the onboarding guide for the local commerce stack.
 - Docker wiring to run API process:
   - `infra/docker/docker-compose.yml`
 
+## Task 7 Deliverables (Completed)
+
+- Webhook endpoint:
+  - `POST /webhooks/stripe`
+- Signature verification:
+  - `x-mock-signature` HMAC in mock mode
+  - `Stripe-Signature` verification in test mode
+- Idempotency persistence:
+  - `webhook_events` insert-once by `stripe_event_id`
+- Order/payment state persistence:
+  - `checkout.session.completed` -> upsert order/customer state
+  - `payment_intent.payment_failed` -> mark order failed
+  - `charge.refunded` -> mark order refunded
+
 ## Local Usage
 
 1. Create local env:
@@ -127,5 +141,5 @@ infra/docker/scripts/down.sh
 
 ## Next Backlog Step
 
-Per `docs/COMMERCE_BACKLOG.md`, move to task 7:
-- Build webhook fulfillment endpoint (`POST /webhooks/stripe`).
+Per `docs/COMMERCE_BACKLOG.md`, move to task 8:
+- Implement simple licensing.

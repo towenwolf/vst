@@ -9,16 +9,16 @@ This backlog translates `docs/COMMERCE_PLAN.md` into a sequential execution list
 - Define legal pages: Terms, Privacy, Refund, License Agreement.
 - Confirm support contact channel.
 
-2. Scaffold repository structure for commerce stack
+2. ~~Scaffold repository structure for commerce stack~~
 - Create `apps/web`, `apps/api`, `infra/docker`.
 - Add root-level runbook for local commerce development.
 
-3. Implement local Docker environment
+3. ~~Implement local Docker environment~~
 - Add `docker-compose.yml` with `web`, `api`, `postgres`, `maildev`, `stripe-cli`.
 - Add `.env.example` with required configuration.
 - Add scripts for local startup/teardown.
 
-4. Build database foundation
+4. ~~Build database foundation~~
 - Create migrations/schema for:
 - `orders`
 - `customers` (email-based)

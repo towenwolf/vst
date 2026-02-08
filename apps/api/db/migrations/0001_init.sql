@@ -1,6 +1,3 @@
--- GenX commerce schema bootstrap
--- Task 4: orders, customers, licenses, download_tokens, webhook_events
-
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS citext;
 
@@ -14,7 +11,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TABLE IF NOT EXISTS customers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email CITEXT NOT NULL UNIQUE,
+    email CITEXT NOT NULL UNIQUE CHECK (position('@' in email::text) > 1),
     full_name TEXT,
     stripe_customer_id TEXT UNIQUE,
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -25,11 +22,11 @@ CREATE TABLE IF NOT EXISTS customers (
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
-    stripe_checkout_session_id TEXT NOT NULL UNIQUE,
+    stripe_checkout_session_id TEXT NOT NULL UNIQUE CHECK (stripe_checkout_session_id <> ''),
     stripe_payment_intent_id TEXT UNIQUE,
     stripe_charge_id TEXT UNIQUE,
     status TEXT NOT NULL CHECK (status IN ('pending', 'paid', 'refunded', 'failed', 'canceled')),
-    currency CHAR(3) NOT NULL,
+    currency CHAR(3) NOT NULL CHECK (currency = upper(currency)),
     amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
     product_sku TEXT NOT NULL,
     plugin_version TEXT,
@@ -44,8 +41,8 @@ CREATE TABLE IF NOT EXISTS licenses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
-    license_key_hash TEXT NOT NULL UNIQUE,
-    license_key_last4 TEXT NOT NULL,
+    license_key_hash TEXT NOT NULL UNIQUE CHECK (license_key_hash <> ''),
+    license_key_last4 TEXT NOT NULL CHECK (char_length(license_key_last4) = 4),
     status TEXT NOT NULL CHECK (status IN ('active', 'revoked')) DEFAULT 'active',
     issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     revoked_at TIMESTAMPTZ,
@@ -58,10 +55,10 @@ CREATE TABLE IF NOT EXISTS download_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
-    token_hash TEXT NOT NULL UNIQUE,
-    artifact_path TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE CHECK (token_hash <> ''),
+    artifact_path TEXT NOT NULL CHECK (artifact_path <> ''),
     max_downloads INTEGER NOT NULL DEFAULT 5 CHECK (max_downloads > 0),
-    download_count INTEGER NOT NULL DEFAULT 0 CHECK (download_count >= 0),
+    download_count INTEGER NOT NULL DEFAULT 0 CHECK (download_count >= 0 AND download_count <= max_downloads),
     expires_at TIMESTAMPTZ NOT NULL,
     consumed_at TIMESTAMPTZ,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,
@@ -72,10 +69,10 @@ CREATE TABLE IF NOT EXISTS download_tokens (
 
 CREATE TABLE IF NOT EXISTS webhook_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    stripe_event_id TEXT NOT NULL UNIQUE,
-    event_type TEXT NOT NULL,
+    stripe_event_id TEXT NOT NULL UNIQUE CHECK (stripe_event_id <> ''),
+    event_type TEXT NOT NULL CHECK (event_type <> ''),
     livemode BOOLEAN NOT NULL DEFAULT FALSE,
-    payload JSONB NOT NULL,
+    payload JSONB NOT NULL CHECK (jsonb_typeof(payload) = 'object'),
     processing_status TEXT NOT NULL
         CHECK (processing_status IN ('received', 'processed', 'failed', 'ignored'))
         DEFAULT 'received',

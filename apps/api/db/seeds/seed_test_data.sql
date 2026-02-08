@@ -129,3 +129,126 @@ VALUES (
 )
 ON CONFLICT (stripe_event_id)
 DO NOTHING;
+
+WITH upsert_customer AS (
+    INSERT INTO customers (email, full_name, stripe_customer_id, metadata)
+    VALUES (
+        'refund.buyer@example.com',
+        'Refund Buyer',
+        'cus_test_refund_001',
+        '{"source":"seed"}'::jsonb
+    )
+    ON CONFLICT (email)
+    DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        stripe_customer_id = EXCLUDED.stripe_customer_id,
+        metadata = customers.metadata || EXCLUDED.metadata,
+        updated_at = NOW()
+    RETURNING id
+),
+customer_ref AS (
+    SELECT id FROM upsert_customer
+    UNION ALL
+    SELECT id FROM customers WHERE email = 'refund.buyer@example.com' LIMIT 1
+)
+INSERT INTO orders (
+    customer_id,
+    stripe_checkout_session_id,
+    stripe_payment_intent_id,
+    stripe_charge_id,
+    status,
+    currency,
+    amount_cents,
+    product_sku,
+    plugin_version,
+    fulfilled_at,
+    refunded_at,
+    metadata
+)
+SELECT
+    id,
+    'cs_test_0002',
+    'pi_test_0002',
+    'ch_test_0002',
+    'refunded',
+    'USD',
+    4900,
+    'genx-delay-vst3',
+    '0.1.0',
+    NOW() - INTERVAL '3 days',
+    NOW() - INTERVAL '1 day',
+    '{"source":"seed"}'::jsonb
+FROM customer_ref
+ON CONFLICT (stripe_checkout_session_id)
+DO UPDATE SET
+    status = EXCLUDED.status,
+    refunded_at = EXCLUDED.refunded_at,
+    updated_at = NOW();
+
+WITH upsert_customer AS (
+    INSERT INTO customers (email, full_name, stripe_customer_id, metadata)
+    VALUES (
+        'pending.buyer@example.com',
+        'Pending Buyer',
+        'cus_test_pending_001',
+        '{"source":"seed"}'::jsonb
+    )
+    ON CONFLICT (email)
+    DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        stripe_customer_id = EXCLUDED.stripe_customer_id,
+        metadata = customers.metadata || EXCLUDED.metadata,
+        updated_at = NOW()
+    RETURNING id
+),
+customer_ref AS (
+    SELECT id FROM upsert_customer
+    UNION ALL
+    SELECT id FROM customers WHERE email = 'pending.buyer@example.com' LIMIT 1
+)
+INSERT INTO orders (
+    customer_id,
+    stripe_checkout_session_id,
+    status,
+    currency,
+    amount_cents,
+    product_sku,
+    plugin_version,
+    metadata
+)
+SELECT
+    id,
+    'cs_test_0003',
+    'pending',
+    'USD',
+    4900,
+    'genx-delay-vst3',
+    '0.1.0',
+    '{"source":"seed"}'::jsonb
+FROM customer_ref
+ON CONFLICT (stripe_checkout_session_id)
+DO UPDATE SET
+    status = EXCLUDED.status,
+    updated_at = NOW();
+
+INSERT INTO webhook_events (
+    stripe_event_id,
+    event_type,
+    livemode,
+    payload,
+    processing_status,
+    processing_error
+)
+VALUES (
+    'evt_test_payment_failed_0001',
+    'payment_intent.payment_failed',
+    FALSE,
+    '{"id":"evt_test_payment_failed_0001","type":"payment_intent.payment_failed"}'::jsonb,
+    'failed',
+    'card_declined'
+)
+ON CONFLICT (stripe_event_id)
+DO UPDATE SET
+    processing_status = EXCLUDED.processing_status,
+    processing_error = EXCLUDED.processing_error,
+    updated_at = NOW();

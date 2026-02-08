@@ -20,3 +20,8 @@ Task 4 artifacts for the commerce API.
 - PostgreSQL extensions used: `pgcrypto`, `citext`
 - `updated_at` is maintained by a shared trigger function
 - Keys/tokens are represented as hashes in schema fields intended for secure storage
+- Seed fixtures are idempotent and include:
+- one paid/fulfilled order with a license and active download token
+- one refunded order
+- one pending order
+- processed and failed webhook event examples

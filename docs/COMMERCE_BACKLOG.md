@@ -32,7 +32,7 @@ This backlog translates `docs/COMMERCE_PLAN.md` into a sequential execution list
 - Configure API keys/webhook secret.
 - Document Stripe setup steps for contributors.
 
-6. Build checkout endpoint
+6. ~~Build checkout endpoint~~
 - Implement `POST /checkout`.
 - Create Stripe Checkout Session for guest purchase flow.
 - Attach metadata required for fulfillment.

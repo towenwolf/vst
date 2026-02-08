@@ -56,6 +56,17 @@ This runbook is the onboarding guide for the local commerce stack.
 - Compose wiring for API Stripe runtime config:
   - `infra/docker/docker-compose.yml`
 
+## Task 6 Deliverables (Completed)
+
+- API runtime entrypoint:
+  - `apps/api/src/server.js`
+- Checkout endpoint:
+  - `POST /checkout`
+- Health endpoint:
+  - `GET /health`
+- Docker wiring to run API process:
+  - `infra/docker/docker-compose.yml`
+
 ## Local Usage
 
 1. Create local env:
@@ -116,5 +127,5 @@ infra/docker/scripts/down.sh
 
 ## Next Backlog Step
 
-Per `docs/COMMERCE_BACKLOG.md`, move to task 6:
-- Build checkout endpoint (`POST /checkout`).
+Per `docs/COMMERCE_BACKLOG.md`, move to task 7:
+- Build webhook fulfillment endpoint (`POST /webhooks/stripe`).

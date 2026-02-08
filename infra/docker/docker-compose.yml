@@ -20,7 +20,7 @@ services:
     image: node:20-alpine
     container_name: commerce-api
     working_dir: /workspace/apps/api
-    command: ["sh", "-lc", "echo 'api scaffold container running'; tail -f /dev/null"]
+    command: ["node", "src/server.js"]
     volumes:
       - ../../apps/api:/workspace/apps/api
     ports:

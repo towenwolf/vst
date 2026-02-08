@@ -1,4 +1,4 @@
-# Docker Infrastructure (Task 3)
+# Docker Infrastructure (Task 3 + Task 4)
 
 This folder contains local commerce stack infrastructure for development/testing.
 
@@ -9,6 +9,9 @@ This folder contains local commerce stack infrastructure for development/testing
 - `scripts/up.sh` — start stack
 - `scripts/down.sh` — stop stack
 - `scripts/logs.sh` — tail stack logs
+- `scripts/db-reset.sh` — reset DB schema
+- `scripts/db-migrate.sh` — apply migrations
+- `scripts/db-seed.sh` — load seed fixtures
 
 ## Local Services
 
@@ -34,13 +37,21 @@ cp infra/docker/.env.example infra/docker/.env
 infra/docker/scripts/up.sh
 ```
 
-4. Tail logs:
+4. Initialize database:
+
+```bash
+infra/docker/scripts/db-reset.sh
+infra/docker/scripts/db-migrate.sh
+infra/docker/scripts/db-seed.sh
+```
+
+5. Tail logs:
 
 ```bash
 infra/docker/scripts/logs.sh
 ```
 
-5. Stop stack:
+6. Stop stack:
 
 ```bash
 infra/docker/scripts/down.sh

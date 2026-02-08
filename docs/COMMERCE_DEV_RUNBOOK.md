@@ -29,6 +29,17 @@ This runbook is the onboarding guide for the local commerce stack.
   - `infra/docker/scripts/down.sh`
   - `infra/docker/scripts/logs.sh`
 
+## Task 4 Deliverables (Completed)
+
+- DB migration scaffold:
+  - `apps/api/db/migrations/0001_init.sql`
+- Seed fixtures:
+  - `apps/api/db/seeds/seed_test_data.sql`
+- DB helper scripts:
+  - `infra/docker/scripts/db-reset.sh`
+  - `infra/docker/scripts/db-migrate.sh`
+  - `infra/docker/scripts/db-seed.sh`
+
 ## Local Usage
 
 1. Create local env:
@@ -43,13 +54,21 @@ cp infra/docker/.env.example infra/docker/.env
 infra/docker/scripts/up.sh
 ```
 
-3. Inspect logs:
+3. Initialize database:
+
+```bash
+infra/docker/scripts/db-reset.sh
+infra/docker/scripts/db-migrate.sh
+infra/docker/scripts/db-seed.sh
+```
+
+4. Inspect logs:
 
 ```bash
 infra/docker/scripts/logs.sh
 ```
 
-4. Stop stack:
+5. Stop stack:
 
 ```bash
 infra/docker/scripts/down.sh
@@ -65,5 +84,5 @@ infra/docker/scripts/down.sh
 
 ## Next Backlog Step
 
-Per `docs/COMMERCE_BACKLOG.md`, move to task 4:
-- Build database foundation (migrations/schema for orders/customers/licenses/download tokens/webhook events).
+Per `docs/COMMERCE_BACKLOG.md`, move to task 5:
+- Configure Stripe product/price in test mode and wire contributor setup instructions.

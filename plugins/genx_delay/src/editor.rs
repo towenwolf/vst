@@ -421,6 +421,16 @@ fn draw_main_section(
     let mut mix_value = params.mix.value();
     handle_slider_param(ui, setter, &params.mix, &mut mix_value, "Mix", 0.0..=1.0);
 
+    let mut trim_value = params.trim.value();
+    handle_slider_param(
+        ui,
+        setter,
+        &params.trim,
+        &mut trim_value,
+        "Trim (dB)",
+        -12.0..=12.0,
+    );
+
     ui.add_space(4.0 * scale);
     handle_enum_buttons::<DelayMode>(ui, setter, &params.mode, "Mode");
 }

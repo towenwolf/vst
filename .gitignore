@@ -17,8 +17,21 @@ Cargo.lock
 *.vst3
 *.clap
 *.component
+*.app
 
-# 
+# JUCE / CMake build artifacts
+build/
+cmake-build-*/
+*.a
+*.o
+*.so
+*.dylib
+*.xcodeproj
+*.xcworkspace
+CMakeUserPresets.json
+compile_commands.json
+
+#
 .claude/
 .env
 node_modules/

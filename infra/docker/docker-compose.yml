@@ -1,0 +1,99 @@
+services:
+  web:
+    image: node:20-alpine
+    container_name: commerce-web
+    working_dir: /workspace/apps/web
+    command: ["sh", "-lc", "echo 'web scaffold container running'; tail -f /dev/null"]
+    volumes:
+      - ../../apps/web:/workspace/apps/web
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=development
+      - API_BASE_URL=http://api:3001
+    depends_on:
+      - api
+    networks:
+      - commerce-net
+
+  api:
+    image: node:20-alpine
+    container_name: commerce-api
+    working_dir: /workspace/apps/api
+    command: ["sh", "-lc", "echo 'api scaffold container running'; tail -f /dev/null"]
+    volumes:
+      - ../../apps/api:/workspace/apps/api
+    ports:
+      - "${API_PORT:-3001}:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-commerce}:${POSTGRES_PASSWORD:-commerce}@postgres:5432/${POSTGRES_DB:-commerce}
+      - STRIPE_API_KEY=${STRIPE_API_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-maildev}
+      - MAILDEV_SMTP_HOST=maildev
+      - MAILDEV_SMTP_PORT=1025
+    depends_on:
+      postgres:
+        condition: service_healthy
+      maildev:
+        condition: service_started
+    networks:
+      - commerce-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: commerce-postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-commerce}
+      - POSTGRES_USER=${POSTGRES_USER:-commerce}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-commerce}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - commerce-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-commerce} -d ${POSTGRES_DB:-commerce}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - commerce-net
+
+  maildev:
+    image: maildev/maildev:2.1.0
+    container_name: commerce-maildev
+    ports:
+      - "${MAILDEV_SMTP_PORT:-1025}:1025"
+      - "${MAILDEV_WEB_PORT:-1080}:1080"
+    networks:
+      - commerce-net
+
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    container_name: commerce-stripe-cli
+    entrypoint: ["/bin/sh", "-lc"]
+    command: >-
+      if [ -z "$$STRIPE_API_KEY" ]; then
+        echo "STRIPE_API_KEY is empty; stripe-cli idling.";
+        sleep infinity;
+      else
+        stripe listen
+        --api-key "$$STRIPE_API_KEY"
+        --forward-to "http://api:3001$${STRIPE_FORWARD_TO_PATH:-/webhooks/stripe}";
+      fi
+    environment:
+      - STRIPE_API_KEY=${STRIPE_API_KEY:-}
+      - STRIPE_FORWARD_TO_PATH=${STRIPE_FORWARD_TO_PATH:-/webhooks/stripe}
+    depends_on:
+      - api
+    networks:
+      - commerce-net
+
+volumes:
+  commerce-postgres-data:
+
+networks:
+  commerce-net:
+    driver: bridge

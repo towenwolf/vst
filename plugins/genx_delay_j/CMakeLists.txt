@@ -32,6 +32,13 @@ juce_add_plugin(GenXDelayJ
     VST3_CATEGORIES Fx Delay
 )
 
+# Embedded font binary data
+juce_add_binary_data(GenXDelayJData
+    SOURCES
+        assets/fonts/Righteous-Regular.ttf
+        assets/fonts/JosefinSans-Variable.ttf
+)
+
 # Plugin source files
 target_sources(GenXDelayJ
     PRIVATE
@@ -53,6 +60,7 @@ target_include_directories(GenXDelayJ
 # JUCE modules
 target_link_libraries(GenXDelayJ
     PRIVATE
+        GenXDelayJData
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC

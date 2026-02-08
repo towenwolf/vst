@@ -4,21 +4,24 @@
 
 ## Scope
 
-Sell/distribute the VST3 plugin through a website with:
+Sell/distribute the VST3 plugin through a self-hosted website with:
 - One-time purchase
 - Guest checkout
 - Email delivery links
 - Simple licensing
 - Local Docker-first development
 - Cloud deployment target: Google Cloud
+- US-only sales at launch (no Merchant of Record needed)
 
 ## Product Decisions (Locked)
 
 - Purchase model: one-time payment
 - Checkout model: guest checkout (no required account)
-- Fulfillment: email links for download
-- Licensing: simplest possible (single license key issuance)
-- Cloud platform: Google Cloud
+- Fulfillment: email with receipt, license key, and download link
+- Licensing: simplest possible (single license key issuance, no machine activation)
+- Cloud platform: Google Cloud (Cloud Run + Cloud SQL + Cloud Storage)
+- Email provider: Resend or Postmark (transactional)
+- Market: US-only at launch (international expansion is a future decision point)
 
 ## Architecture
 

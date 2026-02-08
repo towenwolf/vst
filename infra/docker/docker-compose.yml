@@ -3,7 +3,7 @@ services:
     image: node:20-alpine
     container_name: commerce-web
     working_dir: /workspace/apps/web
-    command: ["sh", "-lc", "echo 'web scaffold container running'; tail -f /dev/null"]
+    command: ["sh", "-lc", "node src/server.js"]
     volumes:
       - ../../apps/web:/workspace/apps/web
     ports:

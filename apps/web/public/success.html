@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Checkout Success | GenX Delay</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="checkout-status">
+      <p class="eyebrow">CHECKOUT</p>
+      <h1>Purchase flow completed.</h1>
+      <p id="details">Your checkout request was accepted. Fulfillment wiring is handled in upcoming tasks.</p>
+      <p><a href="/">Return to storefront</a></p>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const provider = params.get('provider');
+      const session = params.get('session');
+      const details = document.getElementById('details');
+
+      if (provider || session) {
+        details.textContent = `Provider: ${provider || 'unknown'} | Session: ${session || 'n/a'}`;
+      }
+    </script>
+  </body>
+</html>

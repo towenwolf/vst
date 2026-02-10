@@ -51,7 +51,9 @@ private:
     float sampleRate = 44100.0f;
 };
 
-// Reverse delay line with Hann-windowed grain crossfade
+// Reverse delay line with two overlapping Hann-windowed grains.
+// Captures chunks of audio (chunk length = delay time) and plays them backwards.
+// Two grains staggered by half a chunk ensure click-free output.
 class ReverseDelayLine
 {
 public:
@@ -60,67 +62,78 @@ public:
     void initialize(float sr, float maxDelaySeconds)
     {
         sampleRate = sr;
-        size_t bufferSize = static_cast<size_t>(std::ceil(sr * maxDelaySeconds)) + 1;
-        buffer.resize(bufferSize, 0.0f);
+        maxSamples = static_cast<size_t>(std::ceil(sr * maxDelaySeconds)) + 1;
+        buffer.resize(maxSamples, 0.0f);
         writePos = 0;
-        grainPhase = 0.0f;
+
+        size_t defaultChunk = static_cast<size_t>(sr * 0.3f); // 300ms default
+        grains[0] = { 0, 0, defaultChunk };
+        grains[1] = { 0, defaultChunk / 2, defaultChunk };
     }
 
     void reset()
     {
         std::fill(buffer.begin(), buffer.end(), 0.0f);
         writePos = 0;
-        grainPhase = 0.0f;
+
+        size_t chunkSize = grains[0].chunkSize;
+        grains[0] = { 0, 0, chunkSize };
+        grains[1] = { 0, chunkSize / 2, chunkSize };
     }
 
     void write(float sample)
     {
         if (buffer.empty()) return;
         buffer[writePos] = sample;
-        writePos = (writePos + 1) % buffer.size();
+        writePos = (writePos + 1) % maxSamples;
     }
 
     float read(float delaySamples)
     {
-        if (buffer.empty() || delaySamples < 1.0f) return 0.0f;
+        if (buffer.empty()) return 0.0f;
 
-        size_t chunkSize = static_cast<size_t>(delaySamples);
-        if (chunkSize < 2) chunkSize = 2;
+        size_t chunkSize = std::max(static_cast<size_t>(delaySamples), size_t(2));
+        float output = 0.0f;
 
-        // Two overlapping grains with Hann window crossfade
-        float grain1 = readGrain(0, chunkSize);
-        float grain2 = readGrain(chunkSize / 2, chunkSize);
+        for (auto& grain : grains)
+        {
+            // Read from buffer in reverse: start position minus counter
+            size_t readPos = (grain.start >= grain.counter)
+                ? grain.start - grain.counter
+                : grain.start + maxSamples - grain.counter;
+            float sample = buffer[readPos % maxSamples];
 
-        // Hann window for crossfade
-        float t = grainPhase;
-        float w1 = 0.5f * (1.0f - std::cos(static_cast<float>(M_PI) * t));
-        float w2 = 0.5f * (1.0f - std::cos(static_cast<float>(M_PI) * (t + 1.0f)));
+            // Full Hann window: 0.5 * (1 - cos(2*PI*t)) where t = counter / chunkSize
+            float t = static_cast<float>(grain.counter) / static_cast<float>(grain.chunkSize);
+            float window = 0.5f * (1.0f - std::cos(2.0f * static_cast<float>(M_PI) * t));
 
-        // Advance grain phase
-        grainPhase += 1.0f / static_cast<float>(chunkSize);
-        if (grainPhase >= 1.0f) grainPhase -= 1.0f;
+            output += sample * window;
 
-        return grain1 * w1 + grain2 * w2;
+            // Advance grain
+            grain.counter += 1;
+            if (grain.counter >= grain.chunkSize)
+            {
+                // Reset grain: start reading from the most recent sample
+                grain.counter = 0;
+                grain.chunkSize = chunkSize;
+                grain.start = (writePos == 0) ? maxSamples - 1 : writePos - 1;
+            }
+        }
+
+        return output;
     }
 
 private:
-    float readGrain(size_t offset, size_t chunkSize) const
+    struct Grain
     {
-        // Read backwards from the write position
-        float phase = grainPhase + static_cast<float>(offset) / static_cast<float>(chunkSize);
-        if (phase >= 1.0f) phase -= 1.0f;
-
-        size_t sampleOffset = static_cast<size_t>(phase * static_cast<float>(chunkSize));
-        size_t readIdx = (writePos + buffer.size() - chunkSize + sampleOffset) % buffer.size();
-
-        // Reverse: read from end towards start of chunk
-        readIdx = (writePos + buffer.size() - 1 - sampleOffset) % buffer.size();
-
-        return buffer[readIdx];
-    }
+        size_t start = 0;
+        size_t counter = 0;
+        size_t chunkSize = 1;
+    };
 
     std::vector<float> buffer;
     size_t writePos = 0;
+    size_t maxSamples = 0;
     float sampleRate = 44100.0f;
-    float grainPhase = 0.0f;
+    Grain grains[2];
 };

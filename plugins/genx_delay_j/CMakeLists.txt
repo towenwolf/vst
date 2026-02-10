@@ -37,6 +37,7 @@ juce_add_binary_data(GenXDelayJData
     SOURCES
         assets/fonts/Righteous-Regular.ttf
         assets/fonts/JosefinSans-Variable.ttf
+        assets/fonts/BebasNeue-Regular.ttf
 )
 
 # Plugin source files

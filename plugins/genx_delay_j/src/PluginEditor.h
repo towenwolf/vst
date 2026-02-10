@@ -5,35 +5,32 @@
 #include "PluginProcessor.h"
 
 //==============================================================================
-// 1969 Woodstock poster color palette
+// Atari 2600 color palette — matte black, walnut woodgrain, chrome, orange
 //==============================================================================
-namespace WoodstockColors
+namespace AtariColors
 {
-    inline const juce::Colour bgCrimson       { 183,  28,  28 };
-    inline const juce::Colour bgPanelDark     { 153,  23,  23 };
-    inline const juce::Colour textCream       { 255, 248, 235 };
-    inline const juce::Colour posterWhite     { 240, 235, 225 };
-    inline const juce::Colour accentCoral     { 255, 167, 130 };
-    inline const juce::Colour accentSage      { 180, 210, 160 };
-    inline const juce::Colour accentSky       { 160, 195, 230 };
-    inline const juce::Colour accentAmber     { 255, 200, 120 };
-    inline const juce::Colour accentTone      { 220, 190, 170 };
-    inline const juce::Colour doveWhite       { 255, 252, 245 };
-    inline const juce::Colour highlightGold   { 255, 215, 140 };
-    inline const juce::Colour windowBorder    { 120,  18,  18 };
+    inline const juce::Colour bgBlack        {  25,  25,  28 };  // matte black plastic body
+    inline const juce::Colour bgRidge        {  38,  36,  35 };  // ribbed plastic / section panels
+    inline const juce::Colour bgWood         { 155,  90,  42 };  // walnut woodgrain
+    inline const juce::Colour bgWoodDark     { 120,  65,  28 };  // darker wood grain lines
+    inline const juce::Colour textSilver     { 200, 200, 205 };  // chrome / silver text
+    inline const juce::Colour textDim        { 115, 115, 120 };  // dimmed labels
+    inline const juce::Colour accentOrange   { 218, 130,  42 };  // Atari orange — the accent
+    inline const juce::Colour knobSilver     { 150, 150, 158 };  // silver knob body
+    inline const juce::Colour knobDark       {  70,  70,  75 };  // knob shadow / track
 }
 
 //==============================================================================
-// Custom LookAndFeel for Woodstock 1969 theme
+// Custom LookAndFeel for Atari 2600 theme
 //==============================================================================
-class WoodstockLookAndFeel : public juce::LookAndFeel_V4
+class AtariLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
-    WoodstockLookAndFeel();
+    AtariLookAndFeel();
 
-    void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
-                          float sliderPos, float minSliderPos, float maxSliderPos,
-                          juce::Slider::SliderStyle style, juce::Slider& slider) override;
+    void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
+                          float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
+                          juce::Slider& slider) override;
 
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
                           bool shouldDrawButtonAsHighlighted,
@@ -58,6 +55,8 @@ public:
 
     void setBodyFont(const juce::Font& font) { bodyFont = font; }
 
+    juce::Colour sectionColor { AtariColors::accentOrange };
+
 private:
     juce::Font bodyFont { juce::FontOptions{} };
 };
@@ -75,11 +74,12 @@ public:
 
 private:
     GenXDelayProcessor& processorRef;
-    WoodstockLookAndFeel woodstockLnf;
+    AtariLookAndFeel atariLnf;
 
     // Custom fonts
-    juce::Font righteousFont { juce::FontOptions{} };
-    juce::Font josefinFont { juce::FontOptions{} };
+    juce::Font titleFont { juce::FontOptions{} };    // Bebas Neue
+    juce::Font headerFont { juce::FontOptions{} };   // Righteous
+    juce::Font bodyFont { juce::FontOptions{} };     // Josefin Sans
 
     // Attachments
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
@@ -91,10 +91,10 @@ private:
     juce::Label delayTimeLabel;
     std::unique_ptr<SliderAttachment> delayTimeAttachment;
 
-    juce::ToggleButton reverseButton{ "Reverse" };
+    juce::ToggleButton reverseButton{ "Rev" };
     std::unique_ptr<ButtonAttachment> reverseAttachment;
 
-    juce::ToggleButton tempoSyncButton{ "Tempo Sync" };
+    juce::ToggleButton tempoSyncButton{ "Sync" };
     std::unique_ptr<ButtonAttachment> tempoSyncAttachment;
 
     juce::ComboBox noteDivisionBox;
@@ -160,8 +160,7 @@ private:
     bool isAnalogMode = false;
 
     // Setup helpers
-    void setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text,
-                     const juce::String& suffix = "");
+    void setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text);
     void updateModeButtons();
     void updateModulationEnabled();
 

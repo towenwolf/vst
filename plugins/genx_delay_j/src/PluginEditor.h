@@ -52,6 +52,10 @@ public:
 
     void drawLabel(juce::Graphics& g, juce::Label& label) override;
 
+    void drawButtonText(juce::Graphics& g, juce::TextButton& button,
+                        bool shouldDrawButtonAsHighlighted,
+                        bool shouldDrawButtonAsDown) override;
+
     juce::Font getComboBoxFont(juce::ComboBox& box) override;
     juce::Font getPopupMenuFont() override;
 

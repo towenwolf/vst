@@ -197,7 +197,7 @@ void PioneerLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton&
     if (!button.isEnabled())
         textCol = textCol.withAlpha(0.3f);
     g.setColour(textCol);
-    g.setFont(segmentFont.withHeight(10.0f));
+    g.setFont(segmentFont.withHeight(12.0f));
     g.drawText(button.getButtonText(),
                juce::Rectangle<float>(textX, 0.0f, (float)button.getWidth() - textX, (float)button.getHeight()),
                juce::Justification::centredLeft);
@@ -278,6 +278,17 @@ void PioneerLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
         g.drawText(label.getText(), label.getLocalBounds(),
                    label.getJustificationType(), true);
     }
+}
+
+void PioneerLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button,
+                                          bool /*shouldDrawButtonAsHighlighted*/,
+                                          bool /*shouldDrawButtonAsDown*/)
+{
+    g.setFont(segmentFont.withHeight(12.0f));
+    g.setColour(button.findColour(button.getToggleState() ? juce::TextButton::textColourOnId
+                                                          : juce::TextButton::textColourOffId));
+    g.drawText(button.getButtonText(), button.getLocalBounds(),
+               juce::Justification::centred, true);
 }
 
 juce::Font PioneerLookAndFeel::getComboBoxFont(juce::ComboBox& /*box*/)
@@ -442,7 +453,7 @@ GenXDelayEditor::GenXDelayEditor(GenXDelayProcessor& p)
 
     setSize(660, 580);
     setResizable(true, true);
-    setResizeLimits(530, 460, 1250, 1100);
+    setResizeLimits(636, 552, 1250, 1100);
     if (auto* c = getConstrainer())
         c->setFixedAspectRatio(660.0 / 580.0);
 }
@@ -457,11 +468,11 @@ void GenXDelayEditor::setupSlider(juce::Slider& slider, juce::Label& label,
                                     const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 55, 14);
+    slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 55, 16);
     addAndMakeVisible(slider);
 
     label.setText(text, juce::dontSendNotification);
-    label.setFont(bodyFont.withHeight(9.0f));
+    label.setFont(bodyFont.withHeight(11.0f).boldened());
     label.setColour(juce::Label::textColourId, vfdAmberDim);
     label.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(label);
@@ -566,8 +577,8 @@ void GenXDelayEditor::paint(juce::Graphics& g)
     }
 
     // --- Recessed display window ---
-    const int displayTop = (int)(8.0f * scale);
-    const int displayHeight = (int)(h * 0.15f);
+    const int displayTop = (int)(6.0f * scale);
+    const int displayHeight = (int)(h * 0.11f);
     auto displayRect = juce::Rectangle<int>(margin, displayTop,
                                              (int)w - margin * 2, displayHeight);
 
@@ -590,7 +601,7 @@ void GenXDelayEditor::paint(juce::Graphics& g)
     g.drawVerticalLine(displayRect.getX(), (float)displayRect.getY(), (float)displayRect.getBottom());
 
     // --- Horizontal divider ridge between display and control area ---
-    const float dividerY = (float)(displayRect.getBottom()) + 4.0f * scale;
+    const float dividerY = (float)(displayRect.getBottom()) + 2.0f * scale;
     g.setColour(chassisGrey.withAlpha(0.4f));
     g.drawHorizontalLine((int)dividerY, (float)margin, w - (float)margin);
     g.setColour(juce::Colours::black.withAlpha(0.5f));
@@ -618,9 +629,9 @@ void GenXDelayEditor::paint(juce::Graphics& g)
     }
 
     // --- Section panels below divider ---
-    auto area = juce::Rectangle<int>(margin, (int)(dividerY + 4.0f * scale),
-                                      (int)w - margin * 2, (int)h - (int)(dividerY + 4.0f * scale));
-    const int sectionMargin = (int)(6.0f * scale);
+    auto area = juce::Rectangle<int>(margin, (int)(dividerY + 2.0f * scale),
+                                      (int)w - margin * 2, (int)h - (int)(dividerY + 2.0f * scale));
+    const int sectionMargin = (int)(3.0f * scale);
     area = area.reduced(sectionMargin);
 
     int columns;
@@ -647,7 +658,7 @@ void GenXDelayEditor::paint(juce::Graphics& g)
 
         float headerGlow = (section.sectionIndex == 4 && !isAnalogMode) ? 0.35f : 1.0f;
         drawVFDText(g, getSectionName(section.sectionIndex), headerArea.reduced(6, 0),
-                    headerFont.withHeight(10.0f * scale),
+                    headerFont.withHeight(12.0f * scale),
                     juce::Justification::centredLeft, headerGlow);
 
         // "(Analog only)" subtitle for MODULATION section
@@ -695,13 +706,13 @@ void GenXDelayEditor::resized()
     const int margin = (int)(10.0f * scale);
 
     // --- Control area below divider ---
-    const int displayTop = (int)(8.0f * scale);
-    const int displayHeight = (int)(h * 0.15f);
-    const float dividerY = (float)(displayTop + displayHeight) + 4.0f * scale;
+    const int displayTop = (int)(6.0f * scale);
+    const int displayHeight = (int)(h * 0.11f);
+    const float dividerY = (float)(displayTop + displayHeight) + 2.0f * scale;
 
-    area = juce::Rectangle<int>(margin, (int)(dividerY + 4.0f * scale),
-                                 (int)w - margin * 2, (int)h - (int)(dividerY + 4.0f * scale));
-    const int sectionMargin = (int)(6.0f * scale);
+    area = juce::Rectangle<int>(margin, (int)(dividerY + 2.0f * scale),
+                                 (int)w - margin * 2, (int)h - (int)(dividerY + 2.0f * scale));
+    const int sectionMargin = (int)(3.0f * scale);
     area = area.reduced(sectionMargin);
 
     int columns;
@@ -710,8 +721,8 @@ void GenXDelayEditor::resized()
     else columns = 1;
 
     const int numSections = 6;
-    const int gap = (int)(6.0f * scale);
-    const int colGap = (int)(6.0f * scale);
+    const int gap = (int)(3.0f * scale);
+    const int colGap = (int)(4.0f * scale);
 
     for (int i = 0; i < numSections; i += columns)
     {
@@ -893,8 +904,8 @@ GenXDelayEditor::calculateSectionBounds(juce::Rectangle<int> area, int columns) 
     const float h = (float)getHeight();
     const float scale = std::min(w / 660.0f, h / 580.0f);
 
-    const int gap = (int)(6.0f * scale);
-    const int colGap = (int)(6.0f * scale);
+    const int gap = (int)(3.0f * scale);
+    const int colGap = (int)(4.0f * scale);
     const int numSections = 6;
 
     auto estimateHeight = [&](int idx) -> int

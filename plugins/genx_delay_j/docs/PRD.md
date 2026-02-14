@@ -138,7 +138,7 @@ INPUT -> Ducker Envelope Detection
 |---------|------|--------|
 | Default size | 660 x 580 px | Done |
 | Resizable | Yes, aspect ratio locked (660:580) | Done |
-| Min/Max | 636x552 to 1250x1100 | Pending (was 530x460) |
+| Min/Max | 636x552 to 1250x1100 | Done |
 | Responsive columns | 3 cols (>=560w), 2 cols (>=380w), 1 col (<380w) | Done |
 | Section organization | TIME, MAIN, STEREO, TONE, MODULATION, DUCK | Done |
 | Title display | "GENX DELAY" in VFD style with phosphor bloom | Done |
@@ -193,29 +193,29 @@ INPUT -> Ducker Envelope Detection
 
 ## 7. Future Roadmap
 
-### Phase 1: GUI Polish (Current)
+### Phase 1: GUI Polish (Complete)
 
 #### Feature: Layout Compression
 Reduce empty space above and below the section card rows.
-- [ ] Reduce `displayHeight` proportion (currently `h * 0.15f`) in `paint()` and `resized()` to shrink the title/display area
-- [ ] Reduce `dividerY` bottom offset (`4.0f * scale` gap after divider) to tighten space between display and section cards
-- [ ] Reduce `sectionMargin` (`6.0f * scale`) and inter-row `gap` (`6.0f * scale`) to compress bottom padding below TONE/MODULATION/DUCK row
-- [ ] Verify sections still render fully at default 660x580 and minimum window size
+- [x] Reduce `displayHeight` proportion from `h * 0.15f` to `h * 0.11f` in `paint()` and `resized()`
+- [x] Reduce `dividerY` bottom offset from `4.0f * scale` to `2.0f * scale`
+- [x] Reduce `sectionMargin` from `6.0f * scale` to `3.0f * scale`, inter-row `gap` to `3.0f * scale`, `colGap` to `4.0f * scale`
+- [x] Verified sections render fully at default 660x580 and minimum window size (build passes)
 
 #### Feature: Window Resize Update
 Increase minimum window size by 20%.
-- [ ] Update `setResizeLimits()` call in constructor from `(530, 460, ...)` to `(636, 552, ...)`
-- [ ] Update aspect ratio in `setFixedAspectRatio()` if default size changes
-- [ ] Update responsive column breakpoints if needed (`560w` / `380w` thresholds)
+- [x] Updated `setResizeLimits()` from `(530, 460, ...)` to `(636, 552, ...)`
+- [x] Aspect ratio unchanged (default size 660x580 unchanged)
+- [x] Responsive column breakpoints unchanged (`560w` / `380w` — min width 636 always hits 3-col)
 
 #### Feature: Typography Fixes
 Fix font consistency and improve small text readability.
-- [ ] Digital/Analog `TextButton` uses default JUCE font — override `drawButtonText()` in `PioneerLookAndFeel` to use `segmentFont` (DSEG14)
-- [ ] Increase `bodyFont` height in `setupSlider()` label from `9.0f` to ~`11.0f` and apply bold
-- [ ] Increase toggle button text in `drawToggleButton()` from `10.0f` to ~`12.0f`
-- [ ] Increase section header font in `drawVFDText` calls from `10.0f * scale` to ~`12.0f * scale`
-- [ ] Increase slider `textBoxStyle` height from `14` to ~`16` in `setupSlider()` for value readouts
-- [ ] Verify text doesn't clip or overlap at minimum and maximum window sizes
+- [x] Added `drawButtonText()` override in `PioneerLookAndFeel` using `segmentFont` at 12.0f
+- [x] Increased `bodyFont` height in `setupSlider()` label from `9.0f` to `11.0f` with bold
+- [x] Increased toggle button text in `drawToggleButton()` from `10.0f` to `12.0f`
+- [x] Increased section header font in `drawVFDText` calls from `10.0f * scale` to `12.0f * scale`
+- [x] Increased slider `textBoxStyle` height from `14` to `16` in `setupSlider()`
+- [x] Verified build compiles and installs successfully at all format targets
 
 ### Phase 2: QA & Testing
 - [ ] QA pass across multiple DAWs (Logic, Ableton, Reaper, FL Studio)

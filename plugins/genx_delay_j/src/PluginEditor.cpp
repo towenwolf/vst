@@ -1,38 +1,38 @@
 #include "PluginEditor.h"
 #include "BinaryData.h"
 
-using namespace AtariColors;
+using namespace PioneerColors;
 
 //==============================================================================
-// AtariLookAndFeel
+// PioneerLookAndFeel
 //==============================================================================
 
-AtariLookAndFeel::AtariLookAndFeel()
+PioneerLookAndFeel::PioneerLookAndFeel()
 {
     setColour(juce::ResizableWindow::backgroundColourId, bgBlack);
-    setColour(juce::Label::textColourId, textSilver);
-    setColour(juce::Slider::textBoxTextColourId, textSilver);
+    setColour(juce::Label::textColourId, vfdAmber);
+    setColour(juce::Slider::textBoxTextColourId, vfdAmber);
     setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    setColour(juce::TextButton::buttonColourId, bgRidge);
-    setColour(juce::TextButton::textColourOffId, textSilver);
-    setColour(juce::ComboBox::backgroundColourId, bgRidge);
-    setColour(juce::ComboBox::textColourId, textSilver);
-    setColour(juce::ComboBox::outlineColourId, textDim.withAlpha(0.3f));
-    setColour(juce::ComboBox::arrowColourId, textDim);
-    setColour(juce::PopupMenu::backgroundColourId, bgRidge);
-    setColour(juce::PopupMenu::textColourId, textSilver);
-    setColour(juce::PopupMenu::highlightedBackgroundColourId, accentOrange);
+    setColour(juce::TextButton::buttonColourId, bgPanel);
+    setColour(juce::TextButton::textColourOffId, vfdAmber);
+    setColour(juce::ComboBox::backgroundColourId, displayBg);
+    setColour(juce::ComboBox::textColourId, vfdAmber);
+    setColour(juce::ComboBox::outlineColourId, vfdAmberDim.withAlpha(0.3f));
+    setColour(juce::ComboBox::arrowColourId, vfdAmberDim);
+    setColour(juce::PopupMenu::backgroundColourId, bgPanel);
+    setColour(juce::PopupMenu::textColourId, vfdAmber);
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, vfdAmber);
     setColour(juce::PopupMenu::highlightedTextColourId, bgBlack);
-    setColour(juce::ToggleButton::textColourId, textSilver);
-    setColour(juce::ToggleButton::tickColourId, accentOrange);
-    setColour(juce::ToggleButton::tickDisabledColourId, textDim.withAlpha(0.3f));
-    setColour(juce::CaretComponent::caretColourId, textSilver);
+    setColour(juce::ToggleButton::textColourId, vfdAmber);
+    setColour(juce::ToggleButton::tickColourId, vfdAmber);
+    setColour(juce::ToggleButton::tickDisabledColourId, vfdAmberDim.withAlpha(0.3f));
+    setColour(juce::CaretComponent::caretColourId, vfdAmber);
 }
 
-void AtariLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
-                                          float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
-                                          juce::Slider& slider)
+void PioneerLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
+                                           float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
+                                           juce::Slider& slider)
 {
     const float diameter = (float)juce::jmin(width, height);
     const float radius = diameter * 0.5f;
@@ -42,171 +42,182 @@ void AtariLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
 
     const bool isHovered = slider.isMouseOverOrDragging();
     const float enabledAlpha = slider.isEnabled() ? 1.0f : 0.3f;
+    const float valueAngle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-    // 1. Glow halo — radial orange ambiance
+    // 1. Amber glow halo
     {
-        const float glowAlpha = isHovered ? 0.15f : 0.06f;
-        juce::ColourGradient glow(accentOrange.withAlpha(glowAlpha * enabledAlpha), centreX, centreY,
-                                   accentOrange.withAlpha(0.0f), centreX, centreY - radius, true);
+        const float glowAlpha = isHovered ? 0.12f : 0.04f;
+        juce::ColourGradient glow(vfdAmber.withAlpha(glowAlpha * enabledAlpha), centreX, centreY,
+                                   vfdAmber.withAlpha(0.0f), centreX, centreY - radius, true);
         g.setGradientFill(glow);
         g.fillEllipse(centreX - radius - 2.0f, centreY - radius - 2.0f,
                        diameter + 4.0f, diameter + 4.0f);
     }
 
-    // 2. Drop shadow underneath knob
+    // 2. Drop shadow
     {
-        g.setColour(juce::Colours::black.withAlpha(0.3f * enabledAlpha));
+        g.setColour(juce::Colours::black.withAlpha(0.4f * enabledAlpha));
         const float shadowR = radius - 1.0f;
-        g.fillEllipse(centreX - shadowR + 0.5f, centreY - shadowR + 1.0f,
+        g.fillEllipse(centreX - shadowR + 0.5f, centreY - shadowR + 1.5f,
                        shadowR * 2.0f, shadowR * 2.0f);
     }
 
-    // 3. Silver knob body — radial gradient lit from top-left
+    // 3. Dark knob body
     {
         const float bodyRadius = radius - 2.0f;
         juce::ColourGradient bodyGrad(
-            knobSilver.brighter(isHovered ? 0.25f : 0.1f).withAlpha(enabledAlpha),
+            knobBody.brighter(isHovered ? 0.15f : 0.05f).withAlpha(enabledAlpha),
             centreX - bodyRadius * 0.3f, centreY - bodyRadius * 0.3f,
-            knobDark.withAlpha(enabledAlpha),
+            juce::Colour(15, 15, 18).withAlpha(enabledAlpha),
             centreX + bodyRadius * 0.5f, centreY + bodyRadius * 0.5f, true);
         g.setGradientFill(bodyGrad);
         g.fillEllipse(centreX - bodyRadius, centreY - bodyRadius,
                        bodyRadius * 2.0f, bodyRadius * 2.0f);
     }
 
-    // 4. Brushed metal concentric rings
+    // 4. Ribbed grip lines (subtle radial lines)
     {
         const float bodyRadius = radius - 2.0f;
-        for (float r = bodyRadius - 1.0f; r > 3.0f; r -= 1.5f)
+        g.setColour(juce::Colours::white.withAlpha(0.03f * enabledAlpha));
+        for (int ri = 0; ri < 24; ++ri)
         {
-            float ringAlpha = 0.04f + 0.02f * std::sin(r * 2.0f);
-            g.setColour(juce::Colours::white.withAlpha(ringAlpha * enabledAlpha));
-            g.drawEllipse(centreX - r, centreY - r, r * 2.0f, r * 2.0f, 0.3f);
+            float angle = (float)ri * juce::MathConstants<float>::twoPi / 24.0f;
+            float x1 = centreX + (bodyRadius * 0.4f) * std::sin(angle);
+            float y1 = centreY - (bodyRadius * 0.4f) * std::cos(angle);
+            float x2 = centreX + (bodyRadius * 0.9f) * std::sin(angle);
+            float y2 = centreY - (bodyRadius * 0.9f) * std::cos(angle);
+            g.drawLine(x1, y1, x2, y2, 0.5f);
         }
     }
 
-    // 5. Specular highlight — bright spot at top-left
-    {
-        const float specR = radius * 0.3f;
-        const float specX = centreX - radius * 0.25f;
-        const float specY = centreY - radius * 0.25f;
-        juce::ColourGradient spec(juce::Colours::white.withAlpha(0.18f * enabledAlpha), specX, specY,
-                                   juce::Colours::transparentWhite, specX + specR, specY + specR, true);
-        g.setGradientFill(spec);
-        g.fillEllipse(specX - specR, specY - specR, specR * 2.0f, specR * 2.0f);
-    }
-
-    // 6. Edge ring — dark outline for depth
+    // 5. Edge ring
     {
         const float bodyRadius = radius - 2.0f;
-        g.setColour(knobDark.darker(0.3f).withAlpha(0.5f * enabledAlpha));
+        g.setColour(knobEdge.withAlpha(0.6f * enabledAlpha));
         g.drawEllipse(centreX - bodyRadius, centreY - bodyRadius,
-                       bodyRadius * 2.0f, bodyRadius * 2.0f, 0.8f);
+                       bodyRadius * 2.0f, bodyRadius * 2.0f, 1.0f);
     }
 
-    // 7. Track arc (background)
+    // 6. Track arc (background)
     {
         juce::Path trackArc;
         trackArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
                                rotaryStartAngle, rotaryEndAngle, true);
-        g.setColour(knobDark.withAlpha(0.5f * enabledAlpha));
+        g.setColour(knobEdge.withAlpha(0.4f * enabledAlpha));
         g.strokePath(trackArc, juce::PathStrokeType(2.0f));
     }
 
-    // 8. Value arc — orange with soft glow
+    // 7. Value arc — amber with VFD glow
+    if (sliderPos > 0.0f)
     {
-        const float valueAngle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
-        if (sliderPos > 0.0f)
-        {
-            // Outer glow
-            juce::Path glowArc;
-            glowArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
-                                   rotaryStartAngle, valueAngle, true);
-            g.setColour(accentOrange.withAlpha(0.15f * enabledAlpha));
-            g.strokePath(glowArc, juce::PathStrokeType(5.0f));
+        // Outer glow
+        juce::Path glowArc;
+        glowArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
+                               rotaryStartAngle, valueAngle, true);
+        g.setColour(vfdAmber.withAlpha(0.12f * enabledAlpha));
+        g.strokePath(glowArc, juce::PathStrokeType(6.0f));
 
-            // Main value arc
-            juce::Path valueArc;
-            valueArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
-                                   rotaryStartAngle, valueAngle, true);
-            g.setColour(accentOrange.withAlpha(enabledAlpha));
-            g.strokePath(valueArc, juce::PathStrokeType(2.5f));
-        }
-
-        // 9. Pointer dot with glow
-        const float dotRadius = 2.0f;
-        const float dotX = centreX + arcRadius * std::sin(valueAngle);
-        const float dotY = centreY - arcRadius * std::cos(valueAngle);
-
-        g.setColour(accentOrange.withAlpha(0.2f * enabledAlpha));
-        g.fillEllipse(dotX - dotRadius * 2.0f, dotY - dotRadius * 2.0f,
-                       dotRadius * 4.0f, dotRadius * 4.0f);
-
-        g.setColour(textSilver.withAlpha(enabledAlpha));
-        g.fillEllipse(dotX - dotRadius, dotY - dotRadius,
-                       dotRadius * 2.0f, dotRadius * 2.0f);
+        // Main value arc
+        juce::Path valueArc;
+        valueArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
+                               rotaryStartAngle, valueAngle, true);
+        g.setColour(vfdAmber.withAlpha(enabledAlpha));
+        g.strokePath(valueArc, juce::PathStrokeType(2.5f));
     }
 
-    // 10. Center dot — dark depth cue
+    // 8. Pointer indicator line on knob body (like Pioneer's red line)
     {
-        const float cdRadius = 1.5f;
-        g.setColour(knobDark.withAlpha(enabledAlpha));
+        const float bodyRadius = radius - 2.0f;
+        const float lineInner = bodyRadius * 0.25f;
+        const float lineOuter = bodyRadius * 0.75f;
+        float px1 = centreX + lineInner * std::sin(valueAngle);
+        float py1 = centreY - lineInner * std::cos(valueAngle);
+        float px2 = centreX + lineOuter * std::sin(valueAngle);
+        float py2 = centreY - lineOuter * std::cos(valueAngle);
+
+        // Glow
+        g.setColour(indicatorRed.withAlpha(0.3f * enabledAlpha));
+        g.drawLine(px1, py1, px2, py2, 3.0f);
+
+        // Crisp line
+        g.setColour(indicatorRed.withAlpha(enabledAlpha));
+        g.drawLine(px1, py1, px2, py2, 1.5f);
+    }
+
+    // 9. Center cap
+    {
+        const float cdRadius = 2.0f;
+        g.setColour(juce::Colour(8, 8, 10).withAlpha(enabledAlpha));
         g.fillEllipse(centreX - cdRadius, centreY - cdRadius, cdRadius * 2.0f, cdRadius * 2.0f);
     }
 }
 
-void AtariLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
-                                          bool shouldDrawButtonAsHighlighted, bool /*shouldDrawButtonAsDown*/)
+void PioneerLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
+                                            bool shouldDrawButtonAsHighlighted, bool /*shouldDrawButtonAsDown*/)
 {
-    const float pillW = 24.0f;
-    const float pillH = 12.0f;
-    const float pillY = ((float)button.getHeight() - pillH) * 0.5f;
-    const float pillR = pillH * 0.5f;
+    const float btnW = 28.0f;
+    const float btnH = 14.0f;
+    const float btnY = ((float)button.getHeight() - btnH) * 0.5f;
 
-    juce::Rectangle<float> pillBounds(4.0f, pillY, pillW, pillH);
+    juce::Rectangle<float> btnBounds(4.0f, btnY, btnW, btnH);
 
     if (button.getToggleState())
     {
-        g.setColour(button.isEnabled() ? accentOrange : accentOrange.withAlpha(0.3f));
-        g.fillRoundedRectangle(pillBounds, pillR);
+        // Lit amber glow behind
+        g.setColour(vfdAmber.withAlpha(button.isEnabled() ? 0.15f : 0.05f));
+        g.fillRect(btnBounds.expanded(2.0f));
+
+        // Lit button face
+        g.setColour(button.isEnabled() ? vfdAmber : vfdAmber.withAlpha(0.3f));
+        g.fillRect(btnBounds);
+
+        // Inner highlight
+        g.setColour(vfdAmberGlow.withAlpha(0.3f));
+        g.fillRect(btnBounds.removeFromTop(2.0f));
     }
     else
     {
-        g.setColour(button.isEnabled() ? knobDark : knobDark.withAlpha(0.3f));
-        g.fillRoundedRectangle(pillBounds, pillR);
-        g.setColour(textDim.withAlpha(0.4f));
-        g.drawRoundedRectangle(pillBounds, pillR, 1.0f);
+        // Dark recessed button
+        g.setColour(button.isEnabled() ? displayBg : displayBg.withAlpha(0.5f));
+        g.fillRect(btnBounds);
+
+        // Border
+        g.setColour(knobEdge.withAlpha(0.5f));
+        g.drawRect(btnBounds, 1.0f);
     }
 
     if (shouldDrawButtonAsHighlighted)
     {
-        g.setColour(accentOrange.withAlpha(0.10f));
-        g.fillRoundedRectangle(pillBounds.expanded(2.0f), pillR + 2.0f);
+        g.setColour(vfdAmber.withAlpha(0.08f));
+        g.fillRect(btnBounds.expanded(2.0f));
     }
 
-    const float textX = pillBounds.getRight() + 6.0f;
-    juce::Colour textCol = button.getToggleState() ? textSilver : textDim;
+    const float textX = 4.0f + btnW + 6.0f;
+    juce::Colour textCol = button.getToggleState() ? vfdAmber : vfdAmberDim;
     if (!button.isEnabled())
         textCol = textCol.withAlpha(0.3f);
     g.setColour(textCol);
-    g.setFont(bodyFont.withHeight(11.0f));
+    g.setFont(segmentFont.withHeight(10.0f));
     g.drawText(button.getButtonText(),
                juce::Rectangle<float>(textX, 0.0f, (float)button.getWidth() - textX, (float)button.getHeight()),
                juce::Justification::centredLeft);
 }
 
-void AtariLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool /*isButtonDown*/,
-                                      int /*buttonX*/, int /*buttonY*/, int /*buttonW*/, int /*buttonH*/,
-                                      juce::ComboBox& box)
+void PioneerLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool /*isButtonDown*/,
+                                        int /*buttonX*/, int /*buttonY*/, int /*buttonW*/, int /*buttonH*/,
+                                        juce::ComboBox& box)
 {
     auto bounds = juce::Rectangle<float>(0.0f, 0.0f, (float)width, (float)height);
 
-    g.setColour(bgRidge);
-    g.fillRoundedRectangle(bounds, 3.0f);
+    // Dark recessed display
+    g.setColour(displayBg);
+    g.fillRect(bounds);
 
-    g.setColour(textDim.withAlpha(0.3f));
-    g.drawRoundedRectangle(bounds.reduced(0.5f), 3.0f, 1.0f);
+    // Amber border
+    g.setColour(vfdAmberDim.withAlpha(0.3f));
+    g.drawRect(bounds, 1.0f);
 
+    // Arrow
     const float arrowSize = 6.0f;
     const float arrowX = (float)width - 16.0f;
     const float arrowY = ((float)height - arrowSize * 0.5f) * 0.5f;
@@ -216,47 +227,47 @@ void AtariLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bo
                       arrowX + arrowSize, arrowY,
                       arrowX + arrowSize * 0.5f, arrowY + arrowSize * 0.5f);
 
-    g.setColour(box.isEnabled() ? textDim : textDim.withAlpha(0.3f));
+    g.setColour(box.isEnabled() ? vfdAmber : vfdAmberDim.withAlpha(0.3f));
     g.fillPath(arrow);
 }
 
-void AtariLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height)
+void PioneerLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height)
 {
-    g.fillAll(bgRidge);
-    g.setColour(textDim.withAlpha(0.2f));
+    g.fillAll(bgPanel);
+    g.setColour(vfdAmberDim.withAlpha(0.3f));
     g.drawRect(0, 0, width, height);
 }
 
-void AtariLookAndFeel::drawPopupMenuItem(juce::Graphics& g, const juce::Rectangle<int>& area,
-                                           bool /*isSeparator*/, bool isActive, bool isHighlighted,
-                                           bool isTicked, bool /*hasSubMenu*/,
-                                           const juce::String& text, const juce::String& /*shortcutKeyText*/,
-                                           const juce::Drawable* /*icon*/, const juce::Colour* /*textColour*/)
+void PioneerLookAndFeel::drawPopupMenuItem(juce::Graphics& g, const juce::Rectangle<int>& area,
+                                             bool /*isSeparator*/, bool isActive, bool isHighlighted,
+                                             bool isTicked, bool /*hasSubMenu*/,
+                                             const juce::String& text, const juce::String& /*shortcutKeyText*/,
+                                             const juce::Drawable* /*icon*/, const juce::Colour* /*textColour*/)
 {
     if (isHighlighted && isActive)
     {
-        g.setColour(accentOrange);
+        g.setColour(vfdAmber);
         g.fillRect(area);
         g.setColour(bgBlack);
     }
     else
     {
-        g.setColour(isActive ? textSilver : textSilver.withAlpha(0.4f));
+        g.setColour(isActive ? vfdAmber : vfdAmber.withAlpha(0.4f));
     }
 
     auto textArea = area.reduced(8, 0);
-    g.setFont(bodyFont.withHeight(11.0f));
+    g.setFont(segmentFont.withHeight(11.0f));
     g.drawText(text, textArea, juce::Justification::centredLeft);
 
     if (isTicked)
     {
-        g.setColour(isHighlighted ? bgBlack : accentOrange);
+        g.setColour(isHighlighted ? bgBlack : vfdAmber);
         auto tickBounds = area.withLeft(area.getRight() - area.getHeight()).reduced(5);
         g.fillEllipse(tickBounds.toFloat());
     }
 }
 
-void AtariLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
+void PioneerLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
 {
     g.fillAll(label.findColour(juce::Label::backgroundColourId));
 
@@ -269,14 +280,14 @@ void AtariLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
     }
 }
 
-juce::Font AtariLookAndFeel::getComboBoxFont(juce::ComboBox& /*box*/)
+juce::Font PioneerLookAndFeel::getComboBoxFont(juce::ComboBox& /*box*/)
 {
-    return bodyFont.withHeight(11.0f);
+    return segmentFont.withHeight(11.0f);
 }
 
-juce::Font AtariLookAndFeel::getPopupMenuFont()
+juce::Font PioneerLookAndFeel::getPopupMenuFont()
 {
-    return bodyFont.withHeight(11.0f);
+    return segmentFont.withHeight(11.0f);
 }
 
 //==============================================================================
@@ -304,19 +315,19 @@ static const char* getSectionName(int sectionIndex)
 GenXDelayEditor::GenXDelayEditor(GenXDelayProcessor& p)
     : AudioProcessorEditor(&p), processorRef(p)
 {
-    auto bebasTypeface = juce::Typeface::createSystemTypefaceFor(
-        BinaryData::BebasNeueRegular_ttf, BinaryData::BebasNeueRegular_ttfSize);
-    auto righteousTypeface = juce::Typeface::createSystemTypefaceFor(
-        BinaryData::RighteousRegular_ttf, BinaryData::RighteousRegular_ttfSize);
-    auto josefinTypeface = juce::Typeface::createSystemTypefaceFor(
-        BinaryData::JosefinSansVariable_ttf, BinaryData::JosefinSansVariable_ttfSize);
+    // Load DSEG fonts
+    auto dseg14Typeface = juce::Typeface::createSystemTypefaceFor(
+        BinaryData::DSEG14ClassicRegular_ttf, BinaryData::DSEG14ClassicRegular_ttfSize);
+    auto dseg7Typeface = juce::Typeface::createSystemTypefaceFor(
+        BinaryData::DSEG7ClassicRegular_ttf, BinaryData::DSEG7ClassicRegular_ttfSize);
 
-    titleFont = juce::Font(juce::FontOptions(bebasTypeface));
-    headerFont = juce::Font(juce::FontOptions(righteousTypeface));
-    bodyFont = juce::Font(juce::FontOptions(josefinTypeface));
+    titleFont  = juce::Font(juce::FontOptions(dseg14Typeface));
+    headerFont = juce::Font(juce::FontOptions(dseg14Typeface));
+    bodyFont   = juce::Font(juce::FontOptions(dseg14Typeface));
+    numFont    = juce::Font(juce::FontOptions(dseg7Typeface));
 
-    atariLnf.setBodyFont(bodyFont);
-    setLookAndFeel(&atariLnf);
+    pioneerLnf.setFonts(titleFont, numFont);
+    setLookAndFeel(&pioneerLnf);
 
     auto& apvts = processorRef.getAPVTS();
 
@@ -429,11 +440,11 @@ GenXDelayEditor::GenXDelayEditor(GenXDelayProcessor& p)
     updateModeButtons();
     updateModulationEnabled();
 
-    setSize(660, 470);
+    setSize(660, 580);
     setResizable(true, true);
-    setResizeLimits(587, 440, 1200, 900);
+    setResizeLimits(530, 460, 1250, 1100);
     if (auto* c = getConstrainer())
-        c->setFixedAspectRatio(660.0 / 470.0);
+        c->setFixedAspectRatio(660.0 / 580.0);
 }
 
 GenXDelayEditor::~GenXDelayEditor()
@@ -450,8 +461,8 @@ void GenXDelayEditor::setupSlider(juce::Slider& slider, juce::Label& label,
     addAndMakeVisible(slider);
 
     label.setText(text, juce::dontSendNotification);
-    label.setFont(bodyFont.withHeight(10.0f));
-    label.setColour(juce::Label::textColourId, textDim);
+    label.setFont(bodyFont.withHeight(9.0f));
+    label.setColour(juce::Label::textColourId, vfdAmberDim);
     label.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(label);
 }
@@ -460,17 +471,17 @@ void GenXDelayEditor::updateModeButtons()
 {
     if (isAnalogMode)
     {
-        digitalModeButton.setColour(juce::TextButton::buttonColourId, bgRidge);
-        digitalModeButton.setColour(juce::TextButton::textColourOffId, textDim);
-        analogModeButton.setColour(juce::TextButton::buttonColourId, accentOrange);
+        digitalModeButton.setColour(juce::TextButton::buttonColourId, bgPanel);
+        digitalModeButton.setColour(juce::TextButton::textColourOffId, vfdAmberDim);
+        analogModeButton.setColour(juce::TextButton::buttonColourId, vfdAmber);
         analogModeButton.setColour(juce::TextButton::textColourOffId, bgBlack);
     }
     else
     {
-        digitalModeButton.setColour(juce::TextButton::buttonColourId, accentOrange);
+        digitalModeButton.setColour(juce::TextButton::buttonColourId, vfdAmber);
         digitalModeButton.setColour(juce::TextButton::textColourOffId, bgBlack);
-        analogModeButton.setColour(juce::TextButton::buttonColourId, bgRidge);
-        analogModeButton.setColour(juce::TextButton::textColourOffId, textDim);
+        analogModeButton.setColour(juce::TextButton::buttonColourId, bgPanel);
+        analogModeButton.setColour(juce::TextButton::textColourOffId, vfdAmberDim);
     }
     digitalModeButton.repaint();
     analogModeButton.repaint();
@@ -509,129 +520,108 @@ void GenXDelayEditor::parameterChanged(const juce::String& parameterID, float ne
 }
 
 //==============================================================================
+// VFD glow text helper — draws text with multi-layer phosphor bloom
+//==============================================================================
+void GenXDelayEditor::drawVFDText(juce::Graphics& g, const juce::String& text,
+                                    juce::Rectangle<int> area, const juce::Font& font,
+                                    juce::Justification just, float glowIntensity)
+{
+    g.setFont(font);
+
+    // Layer 1: Wide soft glow
+    g.setColour(vfdAmber.withAlpha(0.06f * glowIntensity));
+    g.drawText(text, area.expanded(4, 3), just, true);
+
+    // Layer 2: Medium glow
+    g.setColour(vfdAmber.withAlpha(0.12f * glowIntensity));
+    g.drawText(text, area.expanded(2, 1), just, true);
+
+    // Layer 3: Crisp bright text
+    g.setColour(vfdAmberGlow.withAlpha(0.9f * glowIntensity));
+    g.drawText(text, area, just, true);
+}
+
+//==============================================================================
 void GenXDelayEditor::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds();
     const float w = (float)bounds.getWidth();
     const float h = (float)bounds.getHeight();
-    const float scale = std::min(w / 660.0f, h / 470.0f);
+    const float scale = std::min(w / 660.0f, h / 580.0f);
 
-    // --- Background: matte black ---
+    const int margin = (int)(10.0f * scale);
+
+    // --- Chassis body: deep matte black ---
     g.fillAll(bgBlack);
 
-    const float stripeY = h * 0.53f;
-
-    // --- Subtle matte plastic grain in top black area ---
+    // Subtle horizontal brushed-metal grain texture
     {
         juce::Random rng(42);
-        for (int py = 0; py < (int)stripeY; py += 2)
+        for (int py = 0; py < (int)h; py += 2)
         {
-            float rowAlpha = 0.02f + rng.nextFloat() * 0.025f;
+            float rowAlpha = 0.01f + rng.nextFloat() * 0.015f;
             g.setColour(juce::Colours::white.withAlpha(rowAlpha));
             g.drawHorizontalLine(py, 0.0f, w);
         }
     }
 
-    // --- Ribbed plastic texture in the top black area ---
-    {
-        const int titleHeight = (int)(40.0f * scale);
-        for (float ry = (float)titleHeight; ry < stripeY; ry += 3.0f)
-        {
-            float ribAlpha = 0.3f + 0.15f * std::sin(ry * 0.5f);
-            g.setColour(juce::Colour(32, 32, 36).withAlpha(ribAlpha));
-            g.drawHorizontalLine((int)ry, 0.0f, w);
-        }
-    }
+    // --- Recessed display window ---
+    const int displayTop = (int)(8.0f * scale);
+    const int displayHeight = (int)(h * 0.15f);
+    auto displayRect = juce::Rectangle<int>(margin, displayTop,
+                                             (int)w - margin * 2, displayHeight);
 
-    // --- Walnut woodgrain band on bottom ~47% ---
-    // Base gradient for depth / directional lighting
-    {
-        juce::ColourGradient woodBase(bgWood, 0.0f, stripeY + 2.0f,
-                                       bgWood.darker(0.2f), 0.0f, h, false);
-        woodBase.addColour(0.3, bgWood.brighter(0.08f));
-        g.setGradientFill(woodBase);
-        g.fillRect(0.0f, stripeY + 2.0f, w, h - stripeY - 2.0f);
-    }
+    // Bevel: dark inner shadow edges
+    g.setColour(juce::Colours::black.withAlpha(0.6f));
+    g.drawRect(displayRect.expanded(1), 1);
 
-    // Organic wood grain lines — wavy, varied thickness & opacity
-    {
-        juce::Random rng(1337);
-        for (float gy = stripeY + 3.0f; gy < h;)
-        {
-            float spacing = 1.8f + rng.nextFloat() * 3.0f;
-            gy += spacing;
-            if (gy >= h) break;
+    // Display background
+    g.setColour(displayBg);
+    g.fillRect(displayRect);
 
-            float alpha = 0.08f + rng.nextFloat() * 0.30f;
-            bool isDark = rng.nextFloat() > 0.3f;
-            juce::Colour lineCol = isDark ? bgWoodDark : bgWood.brighter(0.15f);
-            g.setColour(lineCol.withAlpha(alpha));
+    // Bottom-right highlight edge (bevel illusion)
+    g.setColour(chassisGrey.withAlpha(0.3f));
+    g.drawHorizontalLine(displayRect.getBottom(), (float)displayRect.getX(), (float)displayRect.getRight());
+    g.drawVerticalLine(displayRect.getRight(), (float)displayRect.getY(), (float)displayRect.getBottom());
 
-            float thickness = 0.4f + rng.nextFloat() * 1.4f;
-            float wavePhase = rng.nextFloat() * juce::MathConstants<float>::twoPi;
-            float waveFreq  = 0.003f + rng.nextFloat() * 0.008f;
-            float waveAmp   = 0.3f + rng.nextFloat() * 1.8f;
-
-            juce::Path grain;
-            grain.startNewSubPath(0.0f, gy);
-            for (float gx = 8.0f; gx <= w; gx += 8.0f)
-                grain.lineTo(gx, gy + std::sin(gx * waveFreq + wavePhase) * waveAmp);
-
-            g.strokePath(grain, juce::PathStrokeType(thickness));
-        }
-    }
-
-    // Subtle wood surface sheen — horizontal lighter reflection band
-    {
-        float sheenY = stripeY + (h - stripeY) * 0.2f;
-        float sheenH = (h - stripeY) * 0.15f;
-        juce::ColourGradient sheen(juce::Colours::white.withAlpha(0.0f), 0.0f, sheenY,
-                                    juce::Colours::white.withAlpha(0.0f), 0.0f, sheenY + sheenH, false);
-        sheen.addColour(0.5, juce::Colours::white.withAlpha(0.035f));
-        g.setGradientFill(sheen);
-        g.fillRect(0.0f, sheenY, w, sheenH);
-    }
-
-    // --- Orange accent stripe — metallic gradient ---
-    {
-        juce::ColourGradient stripGrad(accentOrange.brighter(0.3f), 0.0f, stripeY,
-                                        accentOrange.darker(0.2f), 0.0f, stripeY + 2.0f, false);
-        g.setGradientFill(stripGrad);
-        g.fillRect(0.0f, stripeY, w, 2.0f);
-
-        g.setColour(accentOrange.brighter(0.5f).withAlpha(0.5f));
-        g.drawHorizontalLine((int)stripeY, 0.0f, w);
-    }
-
-    // --- Title: "GENX DELAY" in Bebas Neue, chrome silver ---
-    const int titleHeight = (int)(40.0f * scale);
-    auto titleArea = bounds.removeFromTop(titleHeight);
-
-    // Drop shadow behind title text
+    // Top-left dark edge (inset bevel)
     g.setColour(juce::Colours::black.withAlpha(0.4f));
-    g.setFont(titleFont.withHeight(28.0f * scale));
-    g.drawText("GENX DELAY", titleArea.translated(1, 1), juce::Justification::centred);
+    g.drawHorizontalLine(displayRect.getY(), (float)displayRect.getX(), (float)displayRect.getRight());
+    g.drawVerticalLine(displayRect.getX(), (float)displayRect.getY(), (float)displayRect.getBottom());
 
-    g.setColour(textSilver);
-    g.drawText("GENX DELAY", titleArea, juce::Justification::centred);
+    // --- Horizontal divider ridge between display and control area ---
+    const float dividerY = (float)(displayRect.getBottom()) + 4.0f * scale;
+    g.setColour(chassisGrey.withAlpha(0.4f));
+    g.drawHorizontalLine((int)dividerY, (float)margin, w - (float)margin);
+    g.setColour(juce::Colours::black.withAlpha(0.5f));
+    g.drawHorizontalLine((int)dividerY + 1, (float)margin, w - (float)margin);
 
-    // Orange underline — gradient fade from edges
+    // --- Title: "GENX DELAY" with VFD glow ---
+    const int titleHeight = (int)(32.0f * scale);
+    auto titleArea = displayRect.removeFromTop(titleHeight);
+
+    drawVFDText(g, "GENX DELAY", titleArea, titleFont.withHeight(24.0f * scale));
+
+    // Amber underline with glow
     {
-        const float underlineW = 90.0f * scale;
-        const float underlineX = (w - underlineW) * 0.5f;
-        const float underlineY = titleArea.getBottom() - 3.0f * scale;
-        juce::ColourGradient ulGrad(accentOrange.withAlpha(0.5f), underlineX, underlineY,
-                                     accentOrange.withAlpha(0.9f), underlineX + underlineW * 0.5f, underlineY, false);
-        ulGrad.addColour(1.0, accentOrange.withAlpha(0.5f));
-        g.setGradientFill(ulGrad);
-        g.fillRect(underlineX, underlineY, underlineW, 1.5f);
+        const float underlineW = 120.0f * scale;
+        const float underlineX = ((float)titleArea.getX() + (float)titleArea.getWidth() * 0.5f) - underlineW * 0.5f;
+        const float underlineY = (float)titleArea.getBottom() - 2.0f * scale;
+
+        // Glow
+        g.setColour(vfdAmber.withAlpha(0.08f));
+        g.fillRect(underlineX - 3.0f, underlineY - 1.0f, underlineW + 6.0f, 4.0f);
+
+        // Crisp line
+        g.setColour(vfdAmber.withAlpha(0.7f));
+        g.fillRect(underlineX, underlineY, underlineW, 1.0f);
     }
 
-    // --- Section panels ---
-    auto area = getLocalBounds();
-    area.removeFromTop(titleHeight);
-    const int margin = (int)(10.0f * scale);
-    area = area.reduced(margin);
+    // --- Section panels below divider ---
+    auto area = juce::Rectangle<int>(margin, (int)(dividerY + 4.0f * scale),
+                                      (int)w - margin * 2, (int)h - (int)(dividerY + 4.0f * scale));
+    const int sectionMargin = (int)(6.0f * scale);
+    area = area.reduced(sectionMargin);
 
     int columns;
     if (w >= 560.0f) columns = 3;
@@ -640,84 +630,58 @@ void GenXDelayEditor::paint(juce::Graphics& g)
 
     auto sections = calculateSectionBounds(area, columns);
 
-    const float cornerRadius = 4.0f;
-
     for (auto& section : sections)
     {
         auto sb = section.bounds.toFloat();
 
-        // Panel drop shadow
-        g.setColour(juce::Colours::black.withAlpha(0.25f));
-        g.fillRoundedRectangle(sb.translated(1.0f, 1.5f), cornerRadius);
-
-        // Panel background — dark plastic with subtle top-to-bottom gradient
-        {
-            juce::ColourGradient panelGrad(bgRidge.brighter(0.06f), sb.getX(), sb.getY(),
-                                            bgRidge.darker(0.06f), sb.getX(), sb.getBottom(), false);
-            g.setGradientFill(panelGrad);
-            g.fillRoundedRectangle(sb, cornerRadius);
-        }
-
-        // Inner top highlight edge
-        g.setColour(juce::Colours::white.withAlpha(0.04f));
-        g.drawHorizontalLine((int)(sb.getY() + 1.5f),
-                              sb.getX() + cornerRadius, sb.getRight() - cornerRadius);
-
-        // Thin orange accent line at top of panel — gradient for metallic sheen
-        juce::Colour accent = accentOrange;
+        // Thin amber outline rectangle (VFD sub-section)
+        float accentAlpha = 0.25f;
         if (section.sectionIndex == 4 && !isAnalogMode)
-            accent = accent.withAlpha(0.35f);
+            accentAlpha = 0.10f;
+        g.setColour(vfdAmber.withAlpha(accentAlpha));
+        g.drawRoundedRectangle(sb, 2.0f, 0.5f);
 
-        {
-            juce::ColourGradient accentGrad(accent.brighter(0.2f),
-                                             sb.getX() + cornerRadius, sb.getY(),
-                                             accent.darker(0.1f),
-                                             sb.getRight() - cornerRadius, sb.getY(), false);
-            g.setGradientFill(accentGrad);
-            g.fillRect(sb.getX() + cornerRadius, sb.getY(), sb.getWidth() - cornerRadius * 2.0f, 1.0f);
-        }
+        // Section header with VFD glow
+        auto headerRow = section.bounds;
+        auto headerArea = headerRow.removeFromTop((int)(18.0f * scale));
 
-        // Section header text in orange
-        auto headerArea = section.bounds;
-        auto headerRow = headerArea.removeFromTop((int)(20.0f * scale));
+        float headerGlow = (section.sectionIndex == 4 && !isAnalogMode) ? 0.35f : 1.0f;
+        drawVFDText(g, getSectionName(section.sectionIndex), headerArea.reduced(6, 0),
+                    headerFont.withHeight(10.0f * scale),
+                    juce::Justification::centredLeft, headerGlow);
 
-        g.setColour(accent);
-        g.setFont(headerFont.withHeight(11.0f * scale));
-        g.drawText(getSectionName(section.sectionIndex), headerRow.reduced(8, 0),
-                   juce::Justification::centredLeft);
-
-        // "(Analog only)" subtitle
+        // "(Analog only)" subtitle for MODULATION section
         if (section.sectionIndex == 4)
         {
-            g.setFont(bodyFont.withHeight(9.0f * scale));
-            g.setColour(accent.withAlpha(0.7f));
-            auto subtitleArea = headerRow;
-            subtitleArea.setLeft(headerRow.getX() + (int)(90.0f * scale));
+            g.setFont(bodyFont.withHeight(7.0f * scale));
+            g.setColour(vfdAmberDim.withAlpha(0.5f * headerGlow));
+            auto subtitleArea = headerArea;
+            subtitleArea.setLeft(headerArea.getX() + (int)(80.0f * scale));
             g.drawText("(Analog only)", subtitleArea, juce::Justification::centredLeft);
         }
     }
 
-    // --- Subtle vignette darkening at edges ---
+    // --- Vignette darkening at edges ---
     {
-        juce::ColourGradient topVig(juce::Colours::black.withAlpha(0.15f), 0.0f, 0.0f,
-                                     juce::Colours::transparentBlack, 0.0f, 15.0f * scale, false);
+        juce::ColourGradient topVig(juce::Colours::black.withAlpha(0.2f), 0.0f, 0.0f,
+                                     juce::Colours::transparentBlack, 0.0f, 12.0f * scale, false);
         g.setGradientFill(topVig);
-        g.fillRect(0.0f, 0.0f, w, 15.0f * scale);
+        g.fillRect(0.0f, 0.0f, w, 12.0f * scale);
 
-        juce::ColourGradient botVig(juce::Colours::black.withAlpha(0.2f), 0.0f, h,
-                                     juce::Colours::transparentBlack, 0.0f, h - 15.0f * scale, false);
+        juce::ColourGradient botVig(juce::Colours::black.withAlpha(0.25f), 0.0f, h,
+                                     juce::Colours::transparentBlack, 0.0f, h - 12.0f * scale, false);
         g.setGradientFill(botVig);
-        g.fillRect(0.0f, h - 15.0f * scale, w, 15.0f * scale);
+        g.fillRect(0.0f, h - 12.0f * scale, w, 12.0f * scale);
 
-        juce::ColourGradient leftVig(juce::Colours::black.withAlpha(0.1f), 0.0f, 0.0f,
-                                      juce::Colours::transparentBlack, 12.0f * scale, 0.0f, false);
+        juce::ColourGradient leftVig(juce::Colours::black.withAlpha(0.15f), 0.0f, 0.0f,
+                                      juce::Colours::transparentBlack, 10.0f * scale, 0.0f, false);
         g.setGradientFill(leftVig);
-        g.fillRect(0.0f, 0.0f, 12.0f * scale, h);
+        g.fillRect(0.0f, 0.0f, 10.0f * scale, h);
 
-        juce::ColourGradient rightVig(juce::Colours::black.withAlpha(0.1f), w, 0.0f,
-                                       juce::Colours::transparentBlack, w - 12.0f * scale, 0.0f, false);
+        juce::ColourGradient rightVig(juce::Colours::black.withAlpha(0.15f), w, 0.0f,
+                                       juce::Colours::transparentBlack, w - 10.0f * scale, 0.0f, false);
         g.setGradientFill(rightVig);
-        g.fillRect(w - 12.0f * scale, 0.0f, 12.0f * scale, h);
+        g.fillRect(w - 10.0f * scale, 0.0f, 10.0f * scale, h);
     }
 }
 
@@ -726,13 +690,19 @@ void GenXDelayEditor::resized()
     auto area = getLocalBounds();
     const float w = (float)area.getWidth();
     const float h = (float)area.getHeight();
-    const float scale = std::min(w / 660.0f, h / 470.0f);
-
-    const int titleHeight = (int)(40.0f * scale);
-    area.removeFromTop(titleHeight);
+    const float scale = std::min(w / 660.0f, h / 580.0f);
 
     const int margin = (int)(10.0f * scale);
-    area = area.reduced(margin);
+
+    // --- Control area below divider ---
+    const int displayTop = (int)(8.0f * scale);
+    const int displayHeight = (int)(h * 0.15f);
+    const float dividerY = (float)(displayTop + displayHeight) + 4.0f * scale;
+
+    area = juce::Rectangle<int>(margin, (int)(dividerY + 4.0f * scale),
+                                 (int)w - margin * 2, (int)h - (int)(dividerY + 4.0f * scale));
+    const int sectionMargin = (int)(6.0f * scale);
+    area = area.reduced(sectionMargin);
 
     int columns;
     if (w >= 560.0f) columns = 3;
@@ -752,7 +722,7 @@ void GenXDelayEditor::resized()
         {
             const int knobRow = (int)(80.0f * scale);
             const int toggleRow = (int)(22.0f * scale);
-            const int headerH = (int)(20.0f * scale);
+            const int headerH = (int)(18.0f * scale);
             const int pad = (int)(8.0f * scale);
             switch (idx)
             {
@@ -789,9 +759,9 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
 {
     const float w = (float)getWidth();
     const float h = (float)getHeight();
-    const float scale = std::min(w / 660.0f, h / 470.0f);
+    const float scale = std::min(w / 660.0f, h / 580.0f);
 
-    const int headerH = (int)(20.0f * scale);
+    const int headerH = (int)(18.0f * scale);
     const int knobSize = (int)(52.0f * scale);
     const int valueH = (int)(14.0f * scale);
     const int labelH = (int)(14.0f * scale);
@@ -814,7 +784,7 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
     {
         case 0: // TIME
         {
-            atariLnf.sectionColor = accentOrange;
+            pioneerLnf.sectionColor = vfdAmber;
 
             auto knobArea = area.removeFromTop(knobRowH);
             placeKnob(delayTimeSlider, delayTimeLabel, knobArea);
@@ -838,7 +808,7 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
 
         case 1: // MAIN
         {
-            atariLnf.sectionColor = accentOrange;
+            pioneerLnf.sectionColor = vfdAmber;
 
             auto topKnobRow = area.removeFromTop(knobRowH);
             int colW = topKnobRow.getWidth() / 2;
@@ -862,7 +832,7 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
 
         case 2: // STEREO
         {
-            atariLnf.sectionColor = accentOrange;
+            pioneerLnf.sectionColor = vfdAmber;
 
             auto knobArea = area.removeFromTop(knobRowH);
             placeKnob(stereoOffsetSlider, stereoOffsetLabel, knobArea);
@@ -878,7 +848,7 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
 
         case 3: // TONE
         {
-            atariLnf.sectionColor = accentOrange;
+            pioneerLnf.sectionColor = vfdAmber;
 
             auto knobRow = area.removeFromTop(knobRowH);
             int colW = knobRow.getWidth() / 2;
@@ -889,7 +859,7 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
 
         case 4: // MODULATION
         {
-            atariLnf.sectionColor = accentOrange;
+            pioneerLnf.sectionColor = vfdAmber;
 
             auto topKnobRow = area.removeFromTop(knobRowH);
             int colW = topKnobRow.getWidth() / 2;
@@ -905,7 +875,7 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
 
         case 5: // DUCK
         {
-            atariLnf.sectionColor = accentOrange;
+            pioneerLnf.sectionColor = vfdAmber;
 
             auto knobRow = area.removeFromTop(knobRowH);
             int colW = knobRow.getWidth() / 2;
@@ -921,7 +891,7 @@ GenXDelayEditor::calculateSectionBounds(juce::Rectangle<int> area, int columns) 
 {
     const float w = (float)getWidth();
     const float h = (float)getHeight();
-    const float scale = std::min(w / 660.0f, h / 470.0f);
+    const float scale = std::min(w / 660.0f, h / 580.0f);
 
     const int gap = (int)(6.0f * scale);
     const int colGap = (int)(6.0f * scale);
@@ -931,7 +901,7 @@ GenXDelayEditor::calculateSectionBounds(juce::Rectangle<int> area, int columns) 
     {
         const int knobRow = (int)(80.0f * scale);
         const int toggleRow = (int)(22.0f * scale);
-        const int headerH = (int)(20.0f * scale);
+        const int headerH = (int)(18.0f * scale);
         const int pad = (int)(8.0f * scale);
         switch (idx)
         {

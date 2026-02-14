@@ -67,7 +67,13 @@ public:
 
     static float getNoteDivisionMultiplier(NoteDivision div);
 
+    // Level metering (read from GUI, written from audio thread)
+    float getPeakLeft() const  { return peakLevelLeft.load(std::memory_order_relaxed); }
+    float getPeakRight() const { return peakLevelRight.load(std::memory_order_relaxed); }
+
 private:
+    std::atomic<float> peakLevelLeft  { 0.0f };
+    std::atomic<float> peakLevelRight { 0.0f };
     //==============================================================================
     juce::AudioProcessorValueTreeState apvts;
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();

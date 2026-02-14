@@ -403,6 +403,13 @@ void GenXDelayProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
             rightChannel[i] = outputR;
     }
 
+    // Compute per-block peak levels for GUI metering
+    peakLevelLeft.store(buffer.getMagnitude(0, 0, numSamples), std::memory_order_relaxed);
+    peakLevelRight.store(
+        numOutputChannels >= 2 ? buffer.getMagnitude(1, 0, numSamples)
+                               : buffer.getMagnitude(0, 0, numSamples),
+        std::memory_order_relaxed);
+
     // Handle mono-to-stereo
     if (numInputChannels == 1 && numOutputChannels == 2)
     {

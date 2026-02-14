@@ -5,28 +5,30 @@
 #include "PluginProcessor.h"
 
 //==============================================================================
-// Atari 2600 color palette — matte black, walnut woodgrain, chrome, orange
+// Pioneer VFD receiver color palette — amber VFD on matte black chassis
 //==============================================================================
-namespace AtariColors
+namespace PioneerColors
 {
-    inline const juce::Colour bgBlack        {  25,  25,  28 };  // matte black plastic body
-    inline const juce::Colour bgRidge        {  38,  36,  35 };  // ribbed plastic / section panels
-    inline const juce::Colour bgWood         { 155,  90,  42 };  // walnut woodgrain
-    inline const juce::Colour bgWoodDark     { 120,  65,  28 };  // darker wood grain lines
-    inline const juce::Colour textSilver     { 200, 200, 205 };  // chrome / silver text
-    inline const juce::Colour textDim        { 115, 115, 120 };  // dimmed labels
-    inline const juce::Colour accentOrange   { 218, 130,  42 };  // Atari orange — the accent
-    inline const juce::Colour knobSilver     { 150, 150, 158 };  // silver knob body
-    inline const juce::Colour knobDark       {  70,  70,  75 };  // knob shadow / track
+    inline const juce::Colour bgBlack        {  10,  10,  12 };  // deep black chassis body
+    inline const juce::Colour bgPanel        {  18,  18,  22 };  // slightly lighter panel areas
+    inline const juce::Colour displayBg      {   5,   5,   8 };  // VFD display window background
+    inline const juce::Colour displayFrame   {  30,  30,  35 };  // recessed display border
+    inline const juce::Colour vfdAmber       { 255, 176,   0 };  // primary VFD amber glow
+    inline const juce::Colour vfdAmberDim    { 140,  95,   0 };  // dimmed / inactive VFD segments
+    inline const juce::Colour vfdAmberGlow   { 255, 200,  50 };  // hot glow center for bloom
+    inline const juce::Colour chassisGrey    {  45,  45,  50 };  // brushed metal / chassis accents
+    inline const juce::Colour knobBody       {  25,  25,  28 };  // dark knob body
+    inline const juce::Colour knobEdge       {  50,  50,  55 };  // knob edge / ring
+    inline const juce::Colour indicatorRed   { 200,  40,  30 };  // red indicator dot on knob
 }
 
 //==============================================================================
-// Custom LookAndFeel for Atari 2600 theme
+// Custom LookAndFeel — Pioneer VFD receiver theme
 //==============================================================================
-class AtariLookAndFeel : public juce::LookAndFeel_V4
+class PioneerLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
-    AtariLookAndFeel();
+    PioneerLookAndFeel();
 
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                           float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
@@ -53,12 +55,17 @@ public:
     juce::Font getComboBoxFont(juce::ComboBox& box) override;
     juce::Font getPopupMenuFont() override;
 
-    void setBodyFont(const juce::Font& font) { bodyFont = font; }
+    void setFonts(const juce::Font& segFont, const juce::Font& numFont)
+    {
+        segmentFont = segFont;
+        numericFont = numFont;
+    }
 
-    juce::Colour sectionColor { AtariColors::accentOrange };
+    juce::Colour sectionColor { PioneerColors::vfdAmber };
 
 private:
-    juce::Font bodyFont { juce::FontOptions{} };
+    juce::Font segmentFont { juce::FontOptions{} };
+    juce::Font numericFont { juce::FontOptions{} };
 };
 
 //==============================================================================
@@ -74,12 +81,13 @@ public:
 
 private:
     GenXDelayProcessor& processorRef;
-    AtariLookAndFeel atariLnf;
+    PioneerLookAndFeel pioneerLnf;
 
     // Custom fonts
-    juce::Font titleFont { juce::FontOptions{} };    // Bebas Neue
-    juce::Font headerFont { juce::FontOptions{} };   // Righteous
-    juce::Font bodyFont { juce::FontOptions{} };     // Josefin Sans
+    juce::Font titleFont  { juce::FontOptions{} };
+    juce::Font headerFont { juce::FontOptions{} };
+    juce::Font bodyFont   { juce::FontOptions{} };
+    juce::Font numFont    { juce::FontOptions{} };
 
     // Attachments
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
@@ -163,6 +171,12 @@ private:
     void setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text);
     void updateModeButtons();
     void updateModulationEnabled();
+
+    // VFD glow text helper
+    void drawVFDText(juce::Graphics& g, const juce::String& text,
+                     juce::Rectangle<int> area, const juce::Font& font,
+                     juce::Justification just = juce::Justification::centred,
+                     float glowIntensity = 1.0f);
 
     // AudioProcessorValueTreeState::Listener
     void parameterChanged(const juce::String& parameterID, float newValue) override;

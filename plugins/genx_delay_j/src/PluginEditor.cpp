@@ -43,28 +43,68 @@ void AtariLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
     const bool isHovered = slider.isMouseOverOrDragging();
     const float enabledAlpha = slider.isEnabled() ? 1.0f : 0.3f;
 
-    // 1. Glow halo — subtle orange
+    // 1. Glow halo — radial orange ambiance
     {
-        const float glowAlpha = isHovered ? 0.12f : 0.05f;
-        g.setColour(accentOrange.withAlpha(glowAlpha * enabledAlpha));
-        g.fillEllipse(centreX - radius, centreY - radius, diameter, diameter);
+        const float glowAlpha = isHovered ? 0.15f : 0.06f;
+        juce::ColourGradient glow(accentOrange.withAlpha(glowAlpha * enabledAlpha), centreX, centreY,
+                                   accentOrange.withAlpha(0.0f), centreX, centreY - radius, true);
+        g.setGradientFill(glow);
+        g.fillEllipse(centreX - radius - 2.0f, centreY - radius - 2.0f,
+                       diameter + 4.0f, diameter + 4.0f);
     }
 
-    // 2. Silver knob body — chrome look with gradient
+    // 2. Drop shadow underneath knob
+    {
+        g.setColour(juce::Colours::black.withAlpha(0.3f * enabledAlpha));
+        const float shadowR = radius - 1.0f;
+        g.fillEllipse(centreX - shadowR + 0.5f, centreY - shadowR + 1.0f,
+                       shadowR * 2.0f, shadowR * 2.0f);
+    }
+
+    // 3. Silver knob body — radial gradient lit from top-left
     {
         const float bodyRadius = radius - 2.0f;
-        const auto knobTop = isHovered
-            ? knobSilver.brighter(0.15f)
-            : knobSilver;
-        const auto knobBot = knobDark;
-
-        juce::ColourGradient grad(knobTop.withAlpha(enabledAlpha), centreX, centreY - bodyRadius,
-                                   knobBot.withAlpha(enabledAlpha), centreX, centreY + bodyRadius, false);
-        g.setGradientFill(grad);
-        g.fillEllipse(centreX - bodyRadius, centreY - bodyRadius, bodyRadius * 2.0f, bodyRadius * 2.0f);
+        juce::ColourGradient bodyGrad(
+            knobSilver.brighter(isHovered ? 0.25f : 0.1f).withAlpha(enabledAlpha),
+            centreX - bodyRadius * 0.3f, centreY - bodyRadius * 0.3f,
+            knobDark.withAlpha(enabledAlpha),
+            centreX + bodyRadius * 0.5f, centreY + bodyRadius * 0.5f, true);
+        g.setGradientFill(bodyGrad);
+        g.fillEllipse(centreX - bodyRadius, centreY - bodyRadius,
+                       bodyRadius * 2.0f, bodyRadius * 2.0f);
     }
 
-    // 3. Track arc (background)
+    // 4. Brushed metal concentric rings
+    {
+        const float bodyRadius = radius - 2.0f;
+        for (float r = bodyRadius - 1.0f; r > 3.0f; r -= 1.5f)
+        {
+            float ringAlpha = 0.04f + 0.02f * std::sin(r * 2.0f);
+            g.setColour(juce::Colours::white.withAlpha(ringAlpha * enabledAlpha));
+            g.drawEllipse(centreX - r, centreY - r, r * 2.0f, r * 2.0f, 0.3f);
+        }
+    }
+
+    // 5. Specular highlight — bright spot at top-left
+    {
+        const float specR = radius * 0.3f;
+        const float specX = centreX - radius * 0.25f;
+        const float specY = centreY - radius * 0.25f;
+        juce::ColourGradient spec(juce::Colours::white.withAlpha(0.18f * enabledAlpha), specX, specY,
+                                   juce::Colours::transparentWhite, specX + specR, specY + specR, true);
+        g.setGradientFill(spec);
+        g.fillEllipse(specX - specR, specY - specR, specR * 2.0f, specR * 2.0f);
+    }
+
+    // 6. Edge ring — dark outline for depth
+    {
+        const float bodyRadius = radius - 2.0f;
+        g.setColour(knobDark.darker(0.3f).withAlpha(0.5f * enabledAlpha));
+        g.drawEllipse(centreX - bodyRadius, centreY - bodyRadius,
+                       bodyRadius * 2.0f, bodyRadius * 2.0f, 0.8f);
+    }
+
+    // 7. Track arc (background)
     {
         juce::Path trackArc;
         trackArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
@@ -73,11 +113,19 @@ void AtariLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
         g.strokePath(trackArc, juce::PathStrokeType(2.0f));
     }
 
-    // 4. Value arc — always orange
+    // 8. Value arc — orange with soft glow
     {
         const float valueAngle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
         if (sliderPos > 0.0f)
         {
+            // Outer glow
+            juce::Path glowArc;
+            glowArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
+                                   rotaryStartAngle, valueAngle, true);
+            g.setColour(accentOrange.withAlpha(0.15f * enabledAlpha));
+            g.strokePath(glowArc, juce::PathStrokeType(5.0f));
+
+            // Main value arc
             juce::Path valueArc;
             valueArc.addCentredArc(centreX, centreY, arcRadius, arcRadius, 0.0f,
                                    rotaryStartAngle, valueAngle, true);
@@ -85,15 +133,21 @@ void AtariLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
             g.strokePath(valueArc, juce::PathStrokeType(2.5f));
         }
 
-        // 5. Pointer dot — bright silver
+        // 9. Pointer dot with glow
         const float dotRadius = 2.0f;
         const float dotX = centreX + arcRadius * std::sin(valueAngle);
         const float dotY = centreY - arcRadius * std::cos(valueAngle);
+
+        g.setColour(accentOrange.withAlpha(0.2f * enabledAlpha));
+        g.fillEllipse(dotX - dotRadius * 2.0f, dotY - dotRadius * 2.0f,
+                       dotRadius * 4.0f, dotRadius * 4.0f);
+
         g.setColour(textSilver.withAlpha(enabledAlpha));
-        g.fillEllipse(dotX - dotRadius, dotY - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
+        g.fillEllipse(dotX - dotRadius, dotY - dotRadius,
+                       dotRadius * 2.0f, dotRadius * 2.0f);
     }
 
-    // 6. Center dot — dark depth cue
+    // 10. Center dot — dark depth cue
     {
         const float cdRadius = 1.5f;
         g.setColour(knobDark.withAlpha(enabledAlpha));
@@ -377,7 +431,9 @@ GenXDelayEditor::GenXDelayEditor(GenXDelayProcessor& p)
 
     setSize(660, 470);
     setResizable(true, true);
-    setResizeLimits(440, 330, 1200, 900);
+    setResizeLimits(587, 440, 1200, 900);
+    if (auto* c = getConstrainer())
+        c->setFixedAspectRatio(660.0 / 470.0);
 }
 
 GenXDelayEditor::~GenXDelayEditor()
@@ -463,43 +519,111 @@ void GenXDelayEditor::paint(juce::Graphics& g)
     // --- Background: matte black ---
     g.fillAll(bgBlack);
 
-    // --- Walnut woodgrain band on bottom ~45% ---
     const float stripeY = h * 0.53f;
 
-    g.setColour(bgWood);
-    g.fillRect(0.0f, stripeY + 2.0f, w, h - stripeY - 2.0f);
-
-    // Subtle horizontal grain lines
-    g.setColour(bgWoodDark.withAlpha(0.35f));
-    for (float gy = stripeY + 6.0f; gy < h; gy += 4.0f)
-        g.drawHorizontalLine((int)gy, 0.0f, w);
+    // --- Subtle matte plastic grain in top black area ---
+    {
+        juce::Random rng(42);
+        for (int py = 0; py < (int)stripeY; py += 2)
+        {
+            float rowAlpha = 0.02f + rng.nextFloat() * 0.025f;
+            g.setColour(juce::Colours::white.withAlpha(rowAlpha));
+            g.drawHorizontalLine(py, 0.0f, w);
+        }
+    }
 
     // --- Ribbed plastic texture in the top black area ---
     {
         const int titleHeight = (int)(40.0f * scale);
-        g.setColour(juce::Colour(32, 32, 36).withAlpha(0.5f));
         for (float ry = (float)titleHeight; ry < stripeY; ry += 3.0f)
+        {
+            float ribAlpha = 0.3f + 0.15f * std::sin(ry * 0.5f);
+            g.setColour(juce::Colour(32, 32, 36).withAlpha(ribAlpha));
             g.drawHorizontalLine((int)ry, 0.0f, w);
+        }
     }
 
-    // --- Orange accent stripe ---
-    g.setColour(accentOrange);
-    g.fillRect(0.0f, stripeY, w, 2.0f);
+    // --- Walnut woodgrain band on bottom ~47% ---
+    // Base gradient for depth / directional lighting
+    {
+        juce::ColourGradient woodBase(bgWood, 0.0f, stripeY + 2.0f,
+                                       bgWood.darker(0.2f), 0.0f, h, false);
+        woodBase.addColour(0.3, bgWood.brighter(0.08f));
+        g.setGradientFill(woodBase);
+        g.fillRect(0.0f, stripeY + 2.0f, w, h - stripeY - 2.0f);
+    }
+
+    // Organic wood grain lines — wavy, varied thickness & opacity
+    {
+        juce::Random rng(1337);
+        for (float gy = stripeY + 3.0f; gy < h;)
+        {
+            float spacing = 1.8f + rng.nextFloat() * 3.0f;
+            gy += spacing;
+            if (gy >= h) break;
+
+            float alpha = 0.08f + rng.nextFloat() * 0.30f;
+            bool isDark = rng.nextFloat() > 0.3f;
+            juce::Colour lineCol = isDark ? bgWoodDark : bgWood.brighter(0.15f);
+            g.setColour(lineCol.withAlpha(alpha));
+
+            float thickness = 0.4f + rng.nextFloat() * 1.4f;
+            float wavePhase = rng.nextFloat() * juce::MathConstants<float>::twoPi;
+            float waveFreq  = 0.003f + rng.nextFloat() * 0.008f;
+            float waveAmp   = 0.3f + rng.nextFloat() * 1.8f;
+
+            juce::Path grain;
+            grain.startNewSubPath(0.0f, gy);
+            for (float gx = 8.0f; gx <= w; gx += 8.0f)
+                grain.lineTo(gx, gy + std::sin(gx * waveFreq + wavePhase) * waveAmp);
+
+            g.strokePath(grain, juce::PathStrokeType(thickness));
+        }
+    }
+
+    // Subtle wood surface sheen — horizontal lighter reflection band
+    {
+        float sheenY = stripeY + (h - stripeY) * 0.2f;
+        float sheenH = (h - stripeY) * 0.15f;
+        juce::ColourGradient sheen(juce::Colours::white.withAlpha(0.0f), 0.0f, sheenY,
+                                    juce::Colours::white.withAlpha(0.0f), 0.0f, sheenY + sheenH, false);
+        sheen.addColour(0.5, juce::Colours::white.withAlpha(0.035f));
+        g.setGradientFill(sheen);
+        g.fillRect(0.0f, sheenY, w, sheenH);
+    }
+
+    // --- Orange accent stripe — metallic gradient ---
+    {
+        juce::ColourGradient stripGrad(accentOrange.brighter(0.3f), 0.0f, stripeY,
+                                        accentOrange.darker(0.2f), 0.0f, stripeY + 2.0f, false);
+        g.setGradientFill(stripGrad);
+        g.fillRect(0.0f, stripeY, w, 2.0f);
+
+        g.setColour(accentOrange.brighter(0.5f).withAlpha(0.5f));
+        g.drawHorizontalLine((int)stripeY, 0.0f, w);
+    }
 
     // --- Title: "GENX DELAY" in Bebas Neue, chrome silver ---
     const int titleHeight = (int)(40.0f * scale);
     auto titleArea = bounds.removeFromTop(titleHeight);
 
-    g.setColour(textSilver);
+    // Drop shadow behind title text
+    g.setColour(juce::Colours::black.withAlpha(0.4f));
     g.setFont(titleFont.withHeight(28.0f * scale));
+    g.drawText("GENX DELAY", titleArea.translated(1, 1), juce::Justification::centred);
+
+    g.setColour(textSilver);
     g.drawText("GENX DELAY", titleArea, juce::Justification::centred);
 
-    // Orange underline below title
+    // Orange underline — gradient fade from edges
     {
         const float underlineW = 90.0f * scale;
         const float underlineX = (w - underlineW) * 0.5f;
         const float underlineY = titleArea.getBottom() - 3.0f * scale;
-        g.setColour(accentOrange.withAlpha(0.7f));
+        juce::ColourGradient ulGrad(accentOrange.withAlpha(0.5f), underlineX, underlineY,
+                                     accentOrange.withAlpha(0.9f), underlineX + underlineW * 0.5f, underlineY, false);
+        ulGrad.addColour(1.0, accentOrange.withAlpha(0.5f));
+        g.setGradientFill(ulGrad);
         g.fillRect(underlineX, underlineY, underlineW, 1.5f);
     }
 
@@ -522,17 +646,36 @@ void GenXDelayEditor::paint(juce::Graphics& g)
     {
         auto sb = section.bounds.toFloat();
 
-        // Panel background — dark plastic
-        g.setColour(bgRidge);
-        g.fillRoundedRectangle(sb, cornerRadius);
+        // Panel drop shadow
+        g.setColour(juce::Colours::black.withAlpha(0.25f));
+        g.fillRoundedRectangle(sb.translated(1.0f, 1.5f), cornerRadius);
 
-        // Thin orange accent line at top of panel
+        // Panel background — dark plastic with subtle top-to-bottom gradient
+        {
+            juce::ColourGradient panelGrad(bgRidge.brighter(0.06f), sb.getX(), sb.getY(),
+                                            bgRidge.darker(0.06f), sb.getX(), sb.getBottom(), false);
+            g.setGradientFill(panelGrad);
+            g.fillRoundedRectangle(sb, cornerRadius);
+        }
+
+        // Inner top highlight edge
+        g.setColour(juce::Colours::white.withAlpha(0.04f));
+        g.drawHorizontalLine((int)(sb.getY() + 1.5f),
+                              sb.getX() + cornerRadius, sb.getRight() - cornerRadius);
+
+        // Thin orange accent line at top of panel — gradient for metallic sheen
         juce::Colour accent = accentOrange;
         if (section.sectionIndex == 4 && !isAnalogMode)
             accent = accent.withAlpha(0.35f);
 
-        g.setColour(accent);
-        g.fillRect(sb.getX() + cornerRadius, sb.getY(), sb.getWidth() - cornerRadius * 2.0f, 1.0f);
+        {
+            juce::ColourGradient accentGrad(accent.brighter(0.2f),
+                                             sb.getX() + cornerRadius, sb.getY(),
+                                             accent.darker(0.1f),
+                                             sb.getRight() - cornerRadius, sb.getY(), false);
+            g.setGradientFill(accentGrad);
+            g.fillRect(sb.getX() + cornerRadius, sb.getY(), sb.getWidth() - cornerRadius * 2.0f, 1.0f);
+        }
 
         // Section header text in orange
         auto headerArea = section.bounds;
@@ -552,6 +695,29 @@ void GenXDelayEditor::paint(juce::Graphics& g)
             subtitleArea.setLeft(headerRow.getX() + (int)(90.0f * scale));
             g.drawText("(Analog only)", subtitleArea, juce::Justification::centredLeft);
         }
+    }
+
+    // --- Subtle vignette darkening at edges ---
+    {
+        juce::ColourGradient topVig(juce::Colours::black.withAlpha(0.15f), 0.0f, 0.0f,
+                                     juce::Colours::transparentBlack, 0.0f, 15.0f * scale, false);
+        g.setGradientFill(topVig);
+        g.fillRect(0.0f, 0.0f, w, 15.0f * scale);
+
+        juce::ColourGradient botVig(juce::Colours::black.withAlpha(0.2f), 0.0f, h,
+                                     juce::Colours::transparentBlack, 0.0f, h - 15.0f * scale, false);
+        g.setGradientFill(botVig);
+        g.fillRect(0.0f, h - 15.0f * scale, w, 15.0f * scale);
+
+        juce::ColourGradient leftVig(juce::Colours::black.withAlpha(0.1f), 0.0f, 0.0f,
+                                      juce::Colours::transparentBlack, 12.0f * scale, 0.0f, false);
+        g.setGradientFill(leftVig);
+        g.fillRect(0.0f, 0.0f, 12.0f * scale, h);
+
+        juce::ColourGradient rightVig(juce::Colours::black.withAlpha(0.1f), w, 0.0f,
+                                       juce::Colours::transparentBlack, w - 12.0f * scale, 0.0f, false);
+        g.setGradientFill(rightVig);
+        g.fillRect(w - 12.0f * scale, 0.0f, 12.0f * scale, h);
     }
 }
 

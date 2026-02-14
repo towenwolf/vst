@@ -136,14 +136,16 @@ INPUT -> Ducker Envelope Detection
 
 | Element | Spec | Status |
 |---------|------|--------|
-| Default size | 660 x 580 px | Done |
-| Resizable | Yes, aspect ratio locked (660:580) | Done |
-| Min/Max | 636x552 to 1250x1100 | Done |
+| Default size | 800 x 580 px | Done |
+| Resizable | Yes, aspect ratio locked (800:580) | Done |
+| Min/Max | 760x552 to 1520x1100 | Done |
 | Responsive columns | 3 cols (>=560w), 2 cols (>=380w), 1 col (<380w) | Done |
 | Section organization | TIME, MAIN, STEREO, TONE, MODULATION, DUCK | Done |
 | Title display | "GENX DELAY" in VFD style with phosphor bloom | Done |
 | Vignette effect | Edge darkening on all sides | Done |
 | Background texture | Procedural grain noise | Done |
+| **Zero dead space** | All controls must fill available window area — no unused vertical or horizontal gaps. When layout dimensions change, knob sizes, row heights, padding, and section estimates must be recalculated so total content height matches window height. | Required |
+| **Layout sync** | `displayHeight`, `headerH`, `knobRow`, `toggleRow`, `pad`, and all other shared layout constants must use identical values in `paint()`, `resized()`, `layoutSection()`, and `calculateSectionBounds()`. Any change to a layout constant must be applied to every occurrence. | Required |
 
 ### 5.3 Custom Components
 
@@ -207,6 +209,24 @@ Increase minimum window size by 20%.
 - [x] Updated `setResizeLimits()` from `(530, 460, ...)` to `(636, 552, ...)`
 - [x] Aspect ratio unchanged (default size 660x580 unchanged)
 - [x] Responsive column breakpoints unchanged (`560w` / `380w` — min width 636 always hits 3-col)
+
+#### Feature: Wider Aspect Ratio
+Widen the window from 660:580 to 800:580 for more horizontal breathing room.
+- [x] Default size changed to 800x580
+- [x] Aspect ratio locked at 800:580 (~1.38:1)
+- [x] Resize limits updated to 760x552 / 1520x1100
+- [x] Scale base updated from 660 to 800 in all 4 calculation sites
+
+#### Feature: Snug Layout — Eliminate Dead Space
+After reducing the display header and widening the window, ~137px (24%) of vertical space was unused. Scaled up all layout elements to fill the window edge-to-edge.
+- [x] Synced `displayHeight` between `paint()` and `resized()` (both `h * 0.05f`)
+- [x] Increased `knobSize` from 52 to 68 (scale-relative) in `layoutSection()`
+- [x] Increased `knobRow` from 80 to 100 in both `estimateHeight` lambdas
+- [x] Increased `toggleRow` / `toggleH` from 22 to 28
+- [x] Increased `headerH` from 18 to 22 in all 4 occurrences
+- [x] Increased `pad` from 8 to 12 in `estimateHeight`, 4 to 8 in `layoutSection()`
+- [x] Increased `valueH` and `labelH` from 14 to 18 in `layoutSection()`
+- [x] Vertical space usage: ~427px → ~590px (of 580px window height)
 
 #### Feature: Typography Fixes
 Fix font consistency and improve small text readability.

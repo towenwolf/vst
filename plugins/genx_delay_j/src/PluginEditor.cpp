@@ -451,11 +451,11 @@ GenXDelayEditor::GenXDelayEditor(GenXDelayProcessor& p)
     updateModeButtons();
     updateModulationEnabled();
 
-    setSize(660, 580);
+    setSize(800, 580);
     setResizable(true, true);
-    setResizeLimits(636, 552, 1250, 1100);
+    setResizeLimits(760, 552, 1520, 1100);
     if (auto* c = getConstrainer())
-        c->setFixedAspectRatio(660.0 / 580.0);
+        c->setFixedAspectRatio(800.0 / 580.0);
 }
 
 GenXDelayEditor::~GenXDelayEditor()
@@ -558,7 +558,7 @@ void GenXDelayEditor::paint(juce::Graphics& g)
     auto bounds = getLocalBounds();
     const float w = (float)bounds.getWidth();
     const float h = (float)bounds.getHeight();
-    const float scale = std::min(w / 660.0f, h / 580.0f);
+    const float scale = std::min(w / 800.0f, h / 580.0f);
 
     const int margin = (int)(10.0f * scale);
 
@@ -578,7 +578,7 @@ void GenXDelayEditor::paint(juce::Graphics& g)
 
     // --- Recessed display window ---
     const int displayTop = (int)(6.0f * scale);
-    const int displayHeight = (int)(h * 0.11f);
+    const int displayHeight = (int)(h * 0.05f);
     auto displayRect = juce::Rectangle<int>(margin, displayTop,
                                              (int)w - margin * 2, displayHeight);
 
@@ -654,22 +654,13 @@ void GenXDelayEditor::paint(juce::Graphics& g)
 
         // Section header with VFD glow
         auto headerRow = section.bounds;
-        auto headerArea = headerRow.removeFromTop((int)(18.0f * scale));
+        auto headerArea = headerRow.removeFromTop((int)(22.0f * scale));
 
         float headerGlow = (section.sectionIndex == 4 && !isAnalogMode) ? 0.35f : 1.0f;
         drawVFDText(g, getSectionName(section.sectionIndex), headerArea.reduced(6, 0),
                     headerFont.withHeight(12.0f * scale),
                     juce::Justification::centredLeft, headerGlow);
 
-        // "(Analog only)" subtitle for MODULATION section
-        if (section.sectionIndex == 4)
-        {
-            g.setFont(bodyFont.withHeight(7.0f * scale));
-            g.setColour(vfdAmberDim.withAlpha(0.5f * headerGlow));
-            auto subtitleArea = headerArea;
-            subtitleArea.setLeft(headerArea.getX() + (int)(80.0f * scale));
-            g.drawText("(Analog only)", subtitleArea, juce::Justification::centredLeft);
-        }
     }
 
     // --- Vignette darkening at edges ---
@@ -701,13 +692,13 @@ void GenXDelayEditor::resized()
     auto area = getLocalBounds();
     const float w = (float)area.getWidth();
     const float h = (float)area.getHeight();
-    const float scale = std::min(w / 660.0f, h / 580.0f);
+    const float scale = std::min(w / 800.0f, h / 580.0f);
 
     const int margin = (int)(10.0f * scale);
 
     // --- Control area below divider ---
     const int displayTop = (int)(6.0f * scale);
-    const int displayHeight = (int)(h * 0.11f);
+    const int displayHeight = (int)(h * 0.05f);
     const float dividerY = (float)(displayTop + displayHeight) + 2.0f * scale;
 
     area = juce::Rectangle<int>(margin, (int)(dividerY + 2.0f * scale),
@@ -731,10 +722,10 @@ void GenXDelayEditor::resized()
 
         auto estimateHeight = [&](int idx) -> int
         {
-            const int knobRow = (int)(80.0f * scale);
-            const int toggleRow = (int)(22.0f * scale);
-            const int headerH = (int)(18.0f * scale);
-            const int pad = (int)(8.0f * scale);
+            const int knobRow = (int)(100.0f * scale);
+            const int toggleRow = (int)(28.0f * scale);
+            const int headerH = (int)(22.0f * scale);
+            const int pad = (int)(12.0f * scale);
             switch (idx)
             {
                 case 0: return headerH + knobRow + toggleRow * 2 + pad * 2;
@@ -770,14 +761,14 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
 {
     const float w = (float)getWidth();
     const float h = (float)getHeight();
-    const float scale = std::min(w / 660.0f, h / 580.0f);
+    const float scale = std::min(w / 800.0f, h / 580.0f);
 
-    const int headerH = (int)(18.0f * scale);
-    const int knobSize = (int)(52.0f * scale);
-    const int valueH = (int)(14.0f * scale);
-    const int labelH = (int)(14.0f * scale);
-    const int toggleH = (int)(22.0f * scale);
-    const int pad = (int)(4.0f * scale);
+    const int headerH = (int)(22.0f * scale);
+    const int knobSize = (int)(68.0f * scale);
+    const int valueH = (int)(18.0f * scale);
+    const int labelH = (int)(18.0f * scale);
+    const int toggleH = (int)(28.0f * scale);
+    const int pad = (int)(8.0f * scale);
 
     area.removeFromTop(headerH);
     area = area.reduced((int)(4.0f * scale), 0);
@@ -796,6 +787,10 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
         case 0: // TIME
         {
             pioneerLnf.sectionColor = vfdAmber;
+
+            int contentH = knobRowH + pad + toggleH + pad + toggleH;
+            int vOffset = (area.getHeight() - contentH) / 2;
+            if (vOffset > 0) area.removeFromTop(vOffset);
 
             auto knobArea = area.removeFromTop(knobRowH);
             placeKnob(delayTimeSlider, delayTimeLabel, knobArea);
@@ -845,6 +840,10 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
         {
             pioneerLnf.sectionColor = vfdAmber;
 
+            int contentH = knobRowH + pad + toggleH;
+            int vOffset = (area.getHeight() - contentH) / 2;
+            if (vOffset > 0) area.removeFromTop(vOffset);
+
             auto knobArea = area.removeFromTop(knobRowH);
             placeKnob(stereoOffsetSlider, stereoOffsetLabel, knobArea);
 
@@ -860,6 +859,10 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
         case 3: // TONE
         {
             pioneerLnf.sectionColor = vfdAmber;
+
+            int contentH = knobRowH;
+            int vOffset = (area.getHeight() - contentH) / 2;
+            if (vOffset > 0) area.removeFromTop(vOffset);
 
             auto knobRow = area.removeFromTop(knobRowH);
             int colW = knobRow.getWidth() / 2;
@@ -888,6 +891,10 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
         {
             pioneerLnf.sectionColor = vfdAmber;
 
+            int contentH = knobRowH;
+            int vOffset = (area.getHeight() - contentH) / 2;
+            if (vOffset > 0) area.removeFromTop(vOffset);
+
             auto knobRow = area.removeFromTop(knobRowH);
             int colW = knobRow.getWidth() / 2;
             placeKnob(duckAmountSlider, duckAmountLabel, knobRow.removeFromLeft(colW));
@@ -902,7 +909,7 @@ GenXDelayEditor::calculateSectionBounds(juce::Rectangle<int> area, int columns) 
 {
     const float w = (float)getWidth();
     const float h = (float)getHeight();
-    const float scale = std::min(w / 660.0f, h / 580.0f);
+    const float scale = std::min(w / 800.0f, h / 580.0f);
 
     const int gap = (int)(3.0f * scale);
     const int colGap = (int)(4.0f * scale);
@@ -910,10 +917,10 @@ GenXDelayEditor::calculateSectionBounds(juce::Rectangle<int> area, int columns) 
 
     auto estimateHeight = [&](int idx) -> int
     {
-        const int knobRow = (int)(80.0f * scale);
-        const int toggleRow = (int)(22.0f * scale);
-        const int headerH = (int)(18.0f * scale);
-        const int pad = (int)(8.0f * scale);
+        const int knobRow = (int)(100.0f * scale);
+        const int toggleRow = (int)(28.0f * scale);
+        const int headerH = (int)(22.0f * scale);
+        const int pad = (int)(12.0f * scale);
         switch (idx)
         {
             case 0: return headerH + knobRow + toggleRow * 2 + pad * 2;

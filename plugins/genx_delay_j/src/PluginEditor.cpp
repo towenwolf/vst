@@ -850,7 +850,7 @@ void GenXDelayEditor::layoutSection(int sectionIndex, juce::Rectangle<int> area)
             area.removeFromTop(pad);
 
             auto toggleRow = area.removeFromTop(toggleH);
-            int toggleW = (int)(100.0f * scale);
+            int toggleW = (int)(130.0f * scale);
             pingPongButton.setBounds(toggleRow.getCentreX() - toggleW / 2, toggleRow.getY(),
                                      toggleW, toggleRow.getHeight());
             break;

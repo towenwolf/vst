@@ -58,8 +58,8 @@ echo ""
 
 # Show output files
 echo "Plugin locations:"
-if [ -d "$BUILD_DIR/GenXDelayJ_artefacts" ]; then
-    find "$BUILD_DIR/GenXDelayJ_artefacts" -name "*.vst3" -o -name "*.component" -o -name "*.app" 2>/dev/null | head -10
+if [ -d "$BUILD_DIR/GenXDelay_artefacts" ]; then
+    find "$BUILD_DIR/GenXDelay_artefacts" -name "*.vst3" -o -name "*.component" -o -name "*.app" 2>/dev/null | head -10
 fi
 
 echo ""

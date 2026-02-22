@@ -1,6 +1,6 @@
 # GenX Delay — Distribution & Installation Guide
 
-This guide explains what the GenX Delay plugin is, how to build it, how to share it with others, and how end users install and use it. No prior knowledge of Rust, VST, or audio programming is assumed.
+This guide explains what the GenX Delay plugin is, how to build it, how to share it with others, and how end users install and use it. No prior knowledge of C++, VST, or audio programming is assumed.
 
 ---
 
@@ -10,30 +10,33 @@ GenX Delay is an **audio effect plugin** — a piece of software that runs *insi
 
 ### Plugin Formats
 
-The plugin is built in two industry-standard formats:
+The plugin is built in three industry-standard formats:
 
 | Format | File Extension | Who Uses It |
 |--------|---------------|-------------|
 | **VST3** | `.vst3` | Almost every DAW (Ableton Live, FL Studio, REAPER, Cubase, Studio One, Logic Pro, etc.) |
-| **CLAP** | `.clap` | Newer DAWs and DAWs that support CLAP (REAPER, Bitwig Studio, etc.) |
+| **AU** | `.component` | macOS DAWs (Logic Pro, GarageBand, Ableton Live, REAPER, etc.) |
+| **Standalone** | `.app` (macOS) | Run without a DAW |
 
-You don't need to understand the technical difference. Just know that **VST3 has the widest compatibility**, and **CLAP is a newer alternative** supported by fewer DAWs. When distributing, include both files so users can pick the one their DAW supports.
+You don't need to understand the technical difference. Just know that **VST3 has the widest cross-platform compatibility**, and **AU is the native macOS format** preferred by Logic Pro and GarageBand. When distributing, include all formats so users can pick the one their DAW supports.
 
 ---
 
 ## How the Plugin Gets Built
 
-The plugin is written in **Rust** (a programming language). The source code lives in this repository. To turn the source code into the actual `.vst3` and `.clap` files that users can install, someone with the development environment set up runs a single command:
+The plugin is written in **C++** using the **JUCE framework**. The source code lives in this repository under `plugins/genx_delay`. To turn the source code into the plugin files that users can install, someone with the development environment set up runs:
 
 ```bash
-cargo xtask bundle genx_delay --release
+cd plugins/genx_delay
+./build.sh Release
 ```
 
-This produces two files:
-- `target/bundled/genx_delay.vst3`
-- `target/bundled/genx_delay.clap`
+This produces plugin files under `build/GenXDelay_artefacts/Release/`:
+- `GenX Delay.vst3`
+- `GenX Delay.component` (AU, macOS only)
+- `GenX Delay.app` (Standalone, macOS only)
 
-These are the **only two files needed for distribution**. End users do NOT need Rust, a code editor, or any programming knowledge. They just need these two files.
+These are the **only files needed for distribution**. End users do NOT need C++, CMake, or any programming knowledge. They just need these files.
 
 ### Building for Different Operating Systems
 
@@ -52,8 +55,9 @@ When sharing the plugin, users need:
 
 | Item | Required? | What It Is |
 |------|-----------|------------|
-| `genx_delay.vst3` | Yes (for VST3 users) | The VST3 plugin bundle |
-| `genx_delay.clap` | Yes (for CLAP users) | The CLAP plugin bundle |
+| `GenX Delay.vst3` | Yes (for VST3 users) | The VST3 plugin bundle |
+| `GenX Delay.component` | Yes (for AU users on macOS) | The AU plugin bundle |
+| `GenX Delay.app` | Optional | Standalone application (no DAW needed) |
 | A README or install instructions | Recommended | So users know where to put the files |
 | A license file | Recommended | This project uses GPL-3.0 |
 
@@ -99,7 +103,7 @@ Users download the `.vst3` and/or `.clap` file, then copy it to the correct syst
 
 **VST3:**
 ```
-Copy genx_delay.vst3 to:
+Copy "GenX Delay.vst3" to:
 /Library/Audio/Plug-Ins/VST3/
 ```
 Or for the current user only:
@@ -107,15 +111,17 @@ Or for the current user only:
 ~/Library/Audio/Plug-Ins/VST3/
 ```
 
-**CLAP:**
+**AU (Audio Unit):**
 ```
-Copy genx_delay.clap to:
-/Library/Audio/Plug-Ins/CLAP/
+Copy "GenX Delay.component" to:
+/Library/Audio/Plug-Ins/Components/
 ```
 Or for the current user only:
 ```
-~/Library/Audio/Plug-Ins/CLAP/
+~/Library/Audio/Plug-Ins/Components/
 ```
+
+Note: If you build with `COPY_PLUGIN_AFTER_BUILD` enabled (the default), plugins are automatically copied to these system folders after a successful build.
 
 The `~/Library` folder is hidden by default on Mac. Users can access it by:
 1. Opening Finder
@@ -129,28 +135,16 @@ Alternatively, press **Cmd+Shift+G** in Finder and paste the path.
 
 **VST3:**
 ```
-Copy genx_delay.vst3 to:
+Copy "GenX Delay.vst3" to:
 C:\Program Files\Common Files\VST3\
-```
-
-**CLAP:**
-```
-Copy genx_delay.clap to:
-C:\Program Files\Common Files\CLAP\
 ```
 
 ### Linux Installation
 
 **VST3:**
 ```
-Copy genx_delay.vst3 to:
+Copy "GenX Delay.vst3" to:
 ~/.vst3/
-```
-
-**CLAP:**
-```
-Copy genx_delay.clap to:
-~/.clap/
 ```
 
 ### After Copying
@@ -187,8 +181,8 @@ The plugin should then appear in your DAW's effect/plugin list, typically under 
 
 ## Frequently Asked Questions
 
-**Q: Do users need to install Rust or any programming tools?**
-A: No. The `.vst3` and `.clap` files are fully self-contained. Users just copy them to the right folder.
+**Q: Do users need to install C++ or any programming tools?**
+A: No. The `.vst3`, `.component`, and `.app` files are fully self-contained. Users just copy them to the right folder.
 
 **Q: Why does macOS say the plugin is from an "unidentified developer"?**
 A: Apple requires developers to pay $99/year for a Developer ID certificate and **notarize** their software. Without this, macOS Gatekeeper will block the plugin. Users can work around this by right-clicking the file, choosing "Open", and confirming — but for a professional release, you should sign and notarize the plugin. See Apple's [developer documentation](https://developer.apple.com/developer-id/) for details.
@@ -197,25 +191,25 @@ A: Apple requires developers to pay $99/year for a Developer ID certificate and 
 A: Not directly from your Mac. You would need either a Windows machine, a Windows virtual machine, or a CI/CD service like GitHub Actions that can build on Windows. A GitHub Actions workflow can automatically build for Mac, Windows, and Linux on every release.
 
 **Q: What does GPL-3.0 mean for distribution?**
-A: The GPL-3.0 license (set in this project's `Cargo.toml`) means:
+A: The GPL-3.0 license means:
 - Anyone can use, modify, and redistribute the plugin
 - If someone distributes a modified version, they must also release their source code under GPL-3.0
 - You CAN sell GPL software — the license allows commercial distribution
 - You MUST make the source code available to anyone who receives the binary (e.g., link to this GitHub repo)
 
 **Q: What if I want to sell the plugin without sharing source code?**
-A: You would need to change the license to a proprietary or more permissive one. Since you are the copyright holder, you can re-license your own code. However, check the licenses of all dependencies (nih-plug uses GPL-3.0) — if any dependency is GPL, your plugin must also be GPL when distributed. Consult a lawyer for commercial licensing questions.
+A: You would need to change the license to a proprietary or more permissive one. Since you are the copyright holder, you can re-license your own code. However, check the licenses of all dependencies (JUCE has its own licensing terms) — consult a lawyer for commercial licensing questions.
 
 **Q: Can the plugin run as a standalone application (without a DAW)?**
-A: Not in its current configuration. It is built as a VST3/CLAP plugin only. The nih-plug framework does support standalone builds, but that would require adding a `standalone` feature to the build configuration.
+A: Yes. The JUCE build produces a Standalone format in addition to VST3 and AU. The standalone `.app` is included in the build output.
 
 ---
 
 ## Quick-Start Checklist for Sharing
 
-1. Build the plugin: `cargo xtask bundle genx_delay --release`
-2. Locate the output files in `target/bundled/`
-3. Create a zip file containing `genx_delay.vst3` and `genx_delay.clap`
+1. Build the plugin: `cd plugins/genx_delay && ./build.sh Release`
+2. Locate the output files in `build/GenXDelay_artefacts/Release/`
+3. Create a zip file containing the `.vst3`, `.component`, and `.app` bundles
 4. Write a short description and take a screenshot of the GUI
 5. Upload to your chosen platform (GitHub Releases, KVR, Gumroad, etc.)
 6. Include install instructions (point users to the "How End Users Install" section above, or write a short version)

@@ -85,9 +85,10 @@ fi
 # ── Locate Standalone app ────────────────────────────────────────────
 STANDALONE=""
 for candidate in \
+    "$ARTIFACT_DIR/$BUILD_TYPE/Standalone/$APP_NAME" \
+    "$ARTIFACT_DIR/Standalone/$APP_NAME" \
     "$ARTIFACT_DIR/$BUILD_TYPE/$APP_NAME" \
-    "$ARTIFACT_DIR/$APP_NAME" \
-    "$ARTIFACT_DIR/Standalone/$APP_NAME"; do
+    "$ARTIFACT_DIR/$APP_NAME"; do
     if [ -d "$candidate" ]; then
         STANDALONE="$candidate"
         break

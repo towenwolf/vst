@@ -1,9 +1,17 @@
-# Rust VST GUI Development Standards
+# VST GUI Development Standards
 
 These standards define how we build and ship reliable plugin GUIs in this repository.
-They apply to all plugins, including `genx_delay`.
+They apply to all plugins.
 
 ## 1. Platform and Framework Baseline
+
+### JUCE / C++ Plugins (`genx_delay`)
+
+1. Target modern formats: VST3, AU, and Standalone.
+2. Use JUCE 8.x for plugin lifecycle, parameter integration, and GUI.
+3. Build with CMake. Pin the JUCE version in `CMakeLists.txt` and upgrade intentionally.
+
+### Rust Plugins (`highpass_filter`, `key_detector`)
 
 1. Target modern formats first: VST3 and CLAP.
 2. Use `nih_plug` for plugin lifecycle/parameter integration.
@@ -63,8 +71,8 @@ Minimum smoke test actions per host:
 
 ## 7. Validation and CI Gates
 
-1. Build all plugin crates in release mode for target platforms.
-2. Run static checks (`cargo fmt`, `cargo clippy`) for changed crates.
+1. Build all plugins in release mode for target platforms.
+2. Run static checks (`cargo fmt`, `cargo clippy` for Rust crates; compiler warnings for C++ plugins).
 3. Run unit/integration tests for DSP and parameter behavior.
 4. Run plugin validation tooling (for example `pluginval`) where available in CI.
 5. A GUI-affecting PR is not releasable unless host smoke tests are recorded in the PR description.
@@ -83,8 +91,8 @@ Minimum smoke test actions per host:
 
 ## 10. Repository-Specific Conventions
 
-1. GUI entry point lives in each plugin crate's `src/editor.rs`.
-2. Persist editor state through plugin params (example: `#[persist = "editor-state"]`).
+1. Rust plugins: GUI entry point lives in each plugin crate's `src/editor.rs`. JUCE plugins: GUI lives in `src/PluginEditor.cpp`.
+2. Persist editor state through plugin params.
 3. Keep GUI design docs separate from reliability standards.
 4. Use `docs/*_GUI_DESIGN.md` for visual design.
 5. Use this document for engineering constraints and release criteria.

@@ -1,8 +1,8 @@
 # GDX-06 Host Smoke Test Report
 
 **Plugin:** GenX Delay v0.1.0
-**Build:** `cargo xtask bundle genx_delay --release`
-**Bundles:** `target/bundled/genx_delay.vst3`, `target/bundled/genx_delay.clap`
+**Build:** `cd plugins/genx_delay && ./build.sh Release`
+**Bundles:** `build/GenXDelay_artefacts/Release/` (VST3, AU, Standalone)
 **Date:** ___________
 **Tester:** ___________
 
@@ -14,10 +14,10 @@ Copy bundles to host-visible plugin directories before testing:
 
 ```bash
 # VST3
-cp -r target/bundled/genx_delay.vst3 ~/Library/Audio/Plug-Ins/VST3/
+cp -r build/GenXDelay_artefacts/Release/VST3/"GenX Delay.vst3" ~/Library/Audio/Plug-Ins/VST3/
 
-# CLAP
-cp -r target/bundled/genx_delay.clap ~/Library/Audio/Plug-Ins/CLAP/
+# AU (automatically copied if COPY_PLUGIN_AFTER_BUILD is enabled)
+cp -r build/GenXDelay_artefacts/Release/AU/"GenX Delay.component" ~/Library/Audio/Plug-Ins/Components/
 ```
 
 Rescan plugins in each host after copying.
@@ -32,11 +32,11 @@ Per `docs/VST_GUI_DEVELOPMENT_STANDARDS.md` Section 6, minimum 4 hosts required.
 
 | # | Check | Format | Result | Notes |
 |---|-------|--------|--------|-------|
-| 1 | Insert plugin and open GUI | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 2 | Automate 3+ params during playback | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 3 | Save project, close, reopen, verify state | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 4 | Toggle GUI open/close repeatedly during playback | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 5 | Resize window + HiDPI scaling | VST3 / CLAP | [ ] Pass [ ] Fail | |
+| 1 | Insert plugin and open GUI | VST3 / AU | [ ] Pass [ ] Fail | |
+| 2 | Automate 3+ params during playback | VST3 / AU | [ ] Pass [ ] Fail | |
+| 3 | Save project, close, reopen, verify state | VST3 / AU | [ ] Pass [ ] Fail | |
+| 4 | Toggle GUI open/close repeatedly during playback | VST3 / AU | [ ] Pass [ ] Fail | |
+| 5 | Resize window + HiDPI scaling | VST3 / AU | [ ] Pass [ ] Fail | |
 
 **Params automated:** ___________
 **Version:** REAPER ___________
@@ -64,11 +64,11 @@ Per `docs/VST_GUI_DEVELOPMENT_STANDARDS.md` Section 6, minimum 4 hosts required.
 
 | # | Check | Format | Result | Notes |
 |---|-------|--------|--------|-------|
-| 1 | Insert plugin and open GUI | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 2 | Automate 3+ params during playback | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 3 | Save project, close, reopen, verify state | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 4 | Toggle GUI open/close repeatedly during playback | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 5 | Resize window + HiDPI scaling | VST3 / CLAP | [ ] Pass [ ] Fail | |
+| 1 | Insert plugin and open GUI | VST3 / AU | [ ] Pass [ ] Fail | |
+| 2 | Automate 3+ params during playback | VST3 / AU | [ ] Pass [ ] Fail | |
+| 3 | Save project, close, reopen, verify state | VST3 / AU | [ ] Pass [ ] Fail | |
+| 4 | Toggle GUI open/close repeatedly during playback | VST3 / AU | [ ] Pass [ ] Fail | |
+| 5 | Resize window + HiDPI scaling | VST3 / AU | [ ] Pass [ ] Fail | |
 
 **Params automated:** ___________
 **Version:** Bitwig Studio ___________
@@ -80,11 +80,11 @@ Per `docs/VST_GUI_DEVELOPMENT_STANDARDS.md` Section 6, minimum 4 hosts required.
 
 | # | Check | Format | Result | Notes |
 |---|-------|--------|--------|-------|
-| 1 | Insert plugin and open GUI | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 2 | Automate 3+ params during playback | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 3 | Save project, close, reopen, verify state | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 4 | Toggle GUI open/close repeatedly during playback | VST3 / CLAP | [ ] Pass [ ] Fail | |
-| 5 | Resize window + HiDPI scaling | VST3 / CLAP | [ ] Pass [ ] Fail | |
+| 1 | Insert plugin and open GUI | VST3 / AU | [ ] Pass [ ] Fail | |
+| 2 | Automate 3+ params during playback | VST3 / AU | [ ] Pass [ ] Fail | |
+| 3 | Save project, close, reopen, verify state | VST3 / AU | [ ] Pass [ ] Fail | |
+| 4 | Toggle GUI open/close repeatedly during playback | VST3 / AU | [ ] Pass [ ] Fail | |
+| 5 | Resize window + HiDPI scaling | VST3 / AU | [ ] Pass [ ] Fail | |
 
 **Params automated:** ___________
 **Version:** ___________
@@ -122,7 +122,7 @@ Pick at least 3 per host. Good candidates covering different control types:
 - [ ] No crashes or hangs observed
 - [ ] State restore is accurate across save/reload
 - [ ] GUI resize/HiDPI behaves correctly at 100%, 150%, 200%
-- [ ] GDX-06 test gate updated in `lib.rs`
+- [ ] GDX-06 test gate verified
 - [ ] Kanban board updated to Done
 
 **GDX-06 Status:** [ ] PASS — ready for release [ ] FAIL — see Known Issues

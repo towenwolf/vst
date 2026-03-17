@@ -81,9 +81,9 @@ namespace GenXKnob
     inline constexpr float edgeThickness      = 1.2f;
     inline constexpr float arcThickness       = 2.5f;
     inline constexpr float arcGlowExtra       = 4.0f;
-    inline constexpr float pointerInner       = 0.3f;    // as fraction of radius
+    inline constexpr float pointerInner       = 0.38f;   // as fraction of radius
     inline constexpr float pointerOuter       = 0.72f;
-    inline constexpr float pointerThickness   = 2.0f;
+    inline constexpr float pointerThickness   = 5.5f;
     inline constexpr float hoverGlowAlpha     = 0.10f;
     inline constexpr float shadowOffset       = 1.5f;
     inline constexpr float shadowAlpha        = 0.4f;

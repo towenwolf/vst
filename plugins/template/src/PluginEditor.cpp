@@ -119,17 +119,10 @@ void GenXLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y,
         g.setColour(theme.accent.withAlpha(enabledAlpha));
         g.strokePath(pointer,
             juce::PathStrokeType(GenXKnob::pointerThickness,
-                juce::PathStrokeType::curved,
-                juce::PathStrokeType::rounded));
+                juce::PathStrokeType::mitered,
+                juce::PathStrokeType::butt));
     }
 
-    // Layer 9: Center cap
-    {
-        const float capSize = diameter * 0.12f;
-        g.setColour(GenXColors::bg0.withAlpha(enabledAlpha));
-        g.fillEllipse(centre.x - capSize, centre.y - capSize,
-            capSize * 2.0f, capSize * 2.0f);
-    }
 }
 
 //------------------------------------------------------------------------------

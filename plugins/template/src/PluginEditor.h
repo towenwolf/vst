@@ -67,11 +67,11 @@ namespace GenXSpace
 
 namespace GenXType
 {
-    inline constexpr float titleSize          = 20.0f;   // plugin name in header bar
-    inline constexpr float sectionHeader      = 11.0f;   // "TIME", "MAIN", etc.
-    inline constexpr float controlLabel       = 10.0f;   // knob labels
-    inline constexpr float controlValue       = 11.0f;   // numeric value readouts
-    inline constexpr float buttonText         = 10.0f;   // toggle / button labels
+    inline constexpr float titleSize          = 28.0f;   // plugin name in header bar (Bebas Neue)
+    inline constexpr float sectionHeader      = 20.0f;   // "TIME", "MAIN", etc. (Bebas Neue)
+    inline constexpr float controlLabel       = 11.0f;   // knob labels (Inter)
+    inline constexpr float controlValue       = 14.0f;   // numeric value readouts (JetBrains Mono)
+    inline constexpr float buttonText         = 11.0f;   // toggle / button labels (Inter)
 }
 
 namespace GenXKnob
@@ -81,9 +81,9 @@ namespace GenXKnob
     inline constexpr float edgeThickness      = 1.2f;
     inline constexpr float arcThickness       = 2.5f;
     inline constexpr float arcGlowExtra       = 4.0f;
-    inline constexpr float pointerInner       = 0.3f;    // as fraction of radius
+    inline constexpr float pointerInner       = 0.38f;   // as fraction of radius
     inline constexpr float pointerOuter       = 0.72f;
-    inline constexpr float pointerThickness   = 2.0f;
+    inline constexpr float pointerThickness   = 5.5f;
     inline constexpr float hoverGlowAlpha     = 0.10f;
     inline constexpr float shadowOffset       = 1.5f;
     inline constexpr float shadowAlpha        = 0.4f;
@@ -178,8 +178,8 @@ private:
 namespace GenXWindow
 {
     // Default window size (design reference)
-    inline constexpr int defaultWidth         = 800;
-    inline constexpr int defaultHeight        = 580;
+    inline constexpr int defaultWidth         = 600;
+    inline constexpr int defaultHeight        = 435;
 
     // Minimum window size
     inline constexpr int minWidth             = 600;
@@ -270,7 +270,7 @@ private:
     std::unique_ptr<SliderAttachment> mixAttachment;
 
     // ── CONTROLS section — example toggle ───────────────────────────────
-    juce::ToggleButton bypassButton { "Bypass" };
+    juce::ToggleButton bypassButton { "BYPASS" };
     std::unique_ptr<ButtonAttachment> bypassAttachment;
 
     // ── Setup helpers ───────────────────────────────────────────────────

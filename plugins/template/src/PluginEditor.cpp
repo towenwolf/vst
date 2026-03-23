@@ -119,17 +119,10 @@ void GenXLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y,
         g.setColour(theme.accent.withAlpha(enabledAlpha));
         g.strokePath(pointer,
             juce::PathStrokeType(GenXKnob::pointerThickness,
-                juce::PathStrokeType::curved,
-                juce::PathStrokeType::rounded));
+                juce::PathStrokeType::mitered,
+                juce::PathStrokeType::butt));
     }
 
-    // Layer 9: Center cap
-    {
-        const float capSize = diameter * 0.12f;
-        g.setColour(GenXColors::bg0.withAlpha(enabledAlpha));
-        g.fillEllipse(centre.x - capSize, centre.y - capSize,
-            capSize * 2.0f, capSize * 2.0f);
-    }
 }
 
 //------------------------------------------------------------------------------
@@ -219,9 +212,12 @@ void GenXLookAndFeel::drawToggleButton(juce::Graphics& g,
     const float enabledAlpha = button.isEnabled() ? 1.0f : 0.3f;
     const bool isOn = button.getToggleState();
 
+    bool isBypass = button.getButtonText().containsIgnoreCase("bypass");
+
     if (isOn)
     {
-        g.setColour(theme.accent.withAlpha(0.85f * enabledAlpha));
+        auto fillColour = isBypass ? juce::Colour(200, 50, 50) : theme.accent;
+        g.setColour(fillColour.withAlpha(0.85f * enabledAlpha));
         g.fillRoundedRectangle(bounds, GenXRadius::button);
     }
     else
@@ -241,7 +237,7 @@ void GenXLookAndFeel::drawToggleButton(juce::Graphics& g,
     g.setColour(isOn ? juce::Colours::white.withAlpha(enabledAlpha)
                      : GenXColors::textSecondary.withAlpha(enabledAlpha));
     g.setFont(labelFont.withHeight(GenXType::buttonText));
-    g.drawText(button.getButtonText(), bounds, juce::Justification::centred);
+    g.drawText(button.getButtonText().toUpperCase(), bounds, juce::Justification::centred);
 }
 
 //------------------------------------------------------------------------------
@@ -305,7 +301,7 @@ void GenXLookAndFeel::drawPopupMenuItem(juce::Graphics& g,
     }
 
     g.setFont(labelFont.withHeight(GenXType::controlLabel));
-    g.drawText(text, area.reduced(8, 0), juce::Justification::centredLeft);
+    g.drawText(text.toUpperCase(), area.reduced(8, 0), juce::Justification::centredLeft);
 }
 
 //------------------------------------------------------------------------------
@@ -320,7 +316,7 @@ void GenXLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
         g.setColour(label.findColour(juce::Label::textColourId)
             .withMultipliedAlpha(label.isEnabled() ? 1.0f : 0.3f));
         g.setFont(label.getFont());
-        g.drawText(label.getText(), label.getLocalBounds(),
+        g.drawText(label.getText().toUpperCase(), label.getLocalBounds(),
             label.getJustificationType(), true);
     }
 }
@@ -392,10 +388,7 @@ GenXTemplateEditor::GenXTemplateEditor(GenXTemplateProcessor& p)
 
     // ── Window size and constraints ─────────────────────────────────────
     setSize(GenXWindow::defaultWidth, GenXWindow::defaultHeight);
-    setResizable(true, true);
-    setResizeLimits(GenXWindow::minWidth, GenXWindow::minHeight,
-                    GenXWindow::maxWidth, GenXWindow::maxHeight);
-    getConstrainer()->setFixedAspectRatio(GenXWindow::aspectRatio);
+    setResizable(false, false);
 }
 
 GenXTemplateEditor::~GenXTemplateEditor()
@@ -561,14 +554,14 @@ void GenXTemplateEditor::drawHeaderBar(juce::Graphics& g,
     // Plugin name
     g.setFont(titleFont.withHeight(GenXType::titleSize * scale));
     g.setColour(GenXColors::textPrimary);
-    g.drawText(theme.displayName,
+    g.drawText(theme.displayName.toUpperCase(),
         bounds.reduced(GenXSpace::margin * scale, 0),
         juce::Justification::centredLeft);
 
     // Accent-colored underline beneath the title
     float lineY = bounds.getBottom() - 2.0f;
     float nameWidth = titleFont.withHeight(GenXType::titleSize * scale)
-        .getStringWidthFloat(theme.displayName);
+        .getStringWidthFloat(theme.displayName.toUpperCase());
     float lineX = GenXSpace::margin * scale;
     g.setColour(theme.accent);
     g.drawLine(lineX, lineY, lineX + nameWidth, lineY, 2.0f);
@@ -592,9 +585,11 @@ void GenXTemplateEditor::drawSectionCard(juce::Graphics& g,
     g.setColour(GenXColors::border);
     g.drawRoundedRectangle(bounds, GenXRadius::card, 1.0f);
 
-    // Section header text (uppercase)
-    float headerH = GenXSpace::headerHeight * scale;
+    // Section header text (uppercase) with top padding
+    float headerPadTop = 8.0f * scale;
+    float headerH = GenXSpace::headerHeight * scale + headerPadTop;
     auto headerArea = bounds.removeFromTop(headerH);
+    headerArea.removeFromTop(headerPadTop);
     g.setFont(headerFont.withHeight(GenXType::sectionHeader * scale));
     g.setColour(GenXColors::textSecondary);
     g.drawText(title.toUpperCase(),
